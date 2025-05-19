@@ -18,7 +18,7 @@ class hpp_model_P2X(hpp_base):
     def __init__(
         self,
         sim_pars_fn,
-        H2_demand_fn = None, # If input_ts_fn is given it should include H2_demand column.
+        H2_demand_fn, # If input_ts_fn is given it should include H2_demand column.
         **kwargs
         ):
         """Initialization of the hybrid power plant evaluator
@@ -54,7 +54,13 @@ class hpp_model_P2X(hpp_base):
         ems_type = sim_pars['ems_type']
         
         weather = pd.read_csv(input_ts_fn, index_col=0, parse_dates=True)
-        H2_demand_data = pd.read_csv(H2_demand_fn, index_col=0, parse_dates=True).loc[weather.index,:]
+        if isinstance(H2_demand_fn, str):
+            H2_demand_data = pd.read_csv(H2_demand_fn, index_col=0, parse_dates=True).loc[weather.index,:]
+            H2_demand = H2_demand_data['H2_demand']
+        elif np.size(H2_demand_fn) == 1:
+            H2_demand = H2_demand_fn * np.ones(N_time)
+        else:
+            H2_demand = H2_demand_fn
         electrolyzer_eff_fn = os.path.join(os.path.dirname(sim_pars_fn), 'Electrolyzer_efficiency_curves.csv')
         df = pd.read_csv(electrolyzer_eff_fn)
         electrolyzer_eff_curve_name = sim_pars['electrolyzer_eff_curve_name']
@@ -331,7 +337,7 @@ class hpp_model_P2X(hpp_base):
         
         # Additional parameters
         prob.set_val('price_t', price)
-        prob.set_val('m_H2_demand_t', H2_demand_data['H2_demand'])
+        prob.set_val('m_H2_demand_t', H2_demand)
         prob.set_val('G_MW', sim_pars['G_MW'])
         #prob.set_val('pv_deg_per_year', sim_pars['pv_deg_per_year'])
         prob.set_val('battery_depth_of_discharge', sim_pars['battery_depth_of_discharge'])

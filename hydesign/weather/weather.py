@@ -73,6 +73,18 @@ class ABL(om.ExplicitComponent):
 
         partials['wst', 'hh'] = ds_interpolated.dWS_dz.values.flatten()
 
+def precompute(hh, weather_fn):
+    weather = pd.read_csv(weather_fn, index_col=0, parse_dates=True)
+    ds_interpolated = interpolate_WS_loglog(weather, hh=hh)
+    return ds_interpolated
+   
+
+def abl(hh, weather_fn, N_time):
+    ds_interpolated = precompute(hh, weather_fn)
+    ds_interpolated = ds_interpolated
+    wst = np.nan_to_num(ds_interpolated.WS.values.flatten())
+    return wst
+    
 
 # -----------------------------------------------------------------------
 # Auxiliar functions for weather handling
