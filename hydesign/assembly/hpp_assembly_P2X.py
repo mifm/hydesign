@@ -26,7 +26,8 @@ class hpp_model_P2X(hpp_base):
         Parameters
         ----------
         sims_pars_fn : Case study input values of the HPP 
-        H2_demand_fn : H2 demand time series file path
+        H2_demand_fn : H2 demand time series file path, time series or constant value
+        kwargs : Additional parameters
         """
         defaults = {'electrolyzer_eff_curve_name': 'PEM electrolyzer H2 production',
                     'electrolyzer_eff_curve_type': 'production',}
