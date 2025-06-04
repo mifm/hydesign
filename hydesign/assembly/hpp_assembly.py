@@ -161,7 +161,7 @@ class hpp_base:
 
         # Assign PPA to the full input_ts
         if ppa_price is None:
-            price = weather['Price']
+            price = weather['Price'].values
         else:
             price = ppa_price * np.ones_like(weather['Price'])
 
@@ -182,7 +182,6 @@ class hpp_base:
             self.N_ws = len(ds.ws.values)
         
         self.N_time = N_time
-        self.sim_pars = sim_pars
         self.wind_deg = wind_deg
         self.wind_deg_yr = wind_deg_yr
         self.share_WT_deg_types = share_WT_deg_types
@@ -196,6 +195,21 @@ class hpp_base:
         self.latitude = latitude
         self.altitude = altitude
         self.life_y = life_y
+        
+        sim_pars['N_ws'] = self.N_ws
+        sim_pars['N_time'] = N_time
+        sim_pars['wind_deg'] = wind_deg
+        sim_pars['wind_deg_yr'] = wind_deg_yr
+        sim_pars['share_WT_deg_types'] = share_WT_deg_types
+        sim_pars['price'] = price
+        sim_pars['max_num_batteries_allowed'] = max_num_batteries_allowed
+        sim_pars['input_ts_fn'] = input_ts_fn
+        sim_pars['longitude'] = longitude
+        sim_pars['latitude'] = latitude
+        sim_pars['altitude'] = altitude
+        sim_pars['life_y'] = life_y
+
+        self.sim_pars = sim_pars
         
     def get_defaults(self):
         return dict(work_dir = './',
@@ -870,7 +884,7 @@ if __name__ == '__main__':
     
     start = time.time()
     
-    x=[55.0, 257.0, 10.000000000000002, 75.0, 5.916666666666667, 75.0, 28.125, 191.25, 1.4791666666666665, 27.0, 4.0, 8.75]
+    x=[55.0, 257.0, 10.000000000000002, 10.0, 5.916666666666667, 75.0, 28.125, 191.25, 1.4791666666666665, 27.0, 4.0, 8.75]
     
     outs = hpp.evaluate(*x)
     
