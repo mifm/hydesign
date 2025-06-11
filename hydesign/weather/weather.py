@@ -98,13 +98,13 @@ class ABL_pp:
             ds_interpolated['WD'] = (('time',), interpolate_WD(self.weather, hh=hh))
         return ds_interpolated
 
-    def compute(self, hh):
+    def compute(self, hh, **kwargs):
         ds_interpolated = self.precompute(hh)
         self.ds_interpolated = ds_interpolated
         wst = np.nan_to_num(ds_interpolated.WS.values.flatten())
         if self.interpolate_wd:
             wd = ds_interpolated.WD.values.ravel()
-            return wst, wd
+            return [wst, wd]
         else:
             return wst
 
