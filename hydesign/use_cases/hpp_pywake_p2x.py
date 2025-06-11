@@ -10,8 +10,8 @@ from hydesign.openmdao_wrapper import ComponentWrapper
 from hydesign.weather.weather import ABL_pp
 from hydesign.ems.ems import expand_to_lifetime
 from hydesign.pv.pv import pvp_pp, pvp_with_degradation_pp
-from hydesign.ems.ems import ems_long_term_operation_pp
-from hydesign.ems.ems_P2X import ems_P2X_pp#, ems_long_term_operation_P2X_pp
+# from hydesign.ems.ems import ems_long_term_operation_pp
+from hydesign.ems.ems_P2X import ems_P2X_pp, ems_long_term_operation_p2x_pp
 from hydesign.battery_degradation import battery_degradation_pp, battery_loss_in_capacity_due_to_temp_pp
 from hydesign.costs.costs import battery_cost_pp, pvp_cost_pp, shared_cost_pp, wpp_cost_pp, ptg_cost_pp
 # from hydesign.finance.finance import finance_pp
@@ -116,7 +116,21 @@ class hpp_model(hpp_base):
                          eff_curve=eff_curve,
                          electrolyzer_eff_curve_type=electrolyzer_eff_curve_type,
                          life_y = life_y,
-                         intervals_per_hour = intervals_per_hour)
+                         intervals_per_hour = intervals_per_hour,
+                         hhv=hhv,
+                         penalty_factor_H2=penalty_factor_H2,
+                         min_power_standby=min_power_standby,
+                         H2_demand=H2_demand,
+                         ptg_deg=ptg_deg,
+                         storage_eff=storage_eff,
+                         price_t=price_t,
+                         G_MW=G_MW,
+                         battery_depth_of_discharge=battery_depth_of_discharge,
+                         battery_charge_efficiency=battery_charge_efficiency,
+                         peak_hr_quantile=peak_hr_quantile,
+                         n_full_power_hours_expected_per_day_at_peak_price=n_full_power_hours_expected_per_day_at_peak_price,
+                         price_H2=price_H2,
+                         )
         
         Batt_deg = battery_degradation_pp(weather_fn = input_ts_fn,
                                           num_batteries = num_batteries,
@@ -126,8 +140,11 @@ class hpp_model(hpp_base):
         Batt_loss = battery_loss_in_capacity_due_to_temp_pp(weather_fn=input_ts_fn, num_batteries=num_batteries,
                                                             life_y = life_y,
                                                             intervals_per_hour = intervals_per_hour,)
-        EMS_long_term = ems_long_term_operation_pp(N_time=N_time, num_batteries=num_batteries,
-                                                   life_y=life_y, intervals_per_hour=intervals_per_hour)
+        EMS_long_term = ems_long_term_operation_p2x_pp(N_time=N_time, num_batteries=num_batteries,
+                                                   life_y=life_y, intervals_per_hour=intervals_per_hour,
+                                                   eff_curve=eff_curve,
+                                                   electrolyzer_eff_curve_type=electrolyzer_eff_curve_type,
+                                                   hhv=hhv,)
         
         Wind_cost = wpp_cost_pp(wind_turbine_cost=sim_pars['wind_turbine_cost'],
                         wind_civil_works_cost=sim_pars['wind_civil_works_cost'],
@@ -178,9 +195,9 @@ class hpp_model(hpp_base):
                         life_y = life_y)
 
 
-        def abl(hh, **kwargs):
-            ws, wd = ABL.compute(hh)
-            return [ws, wd]
+        # def abl(hh, **kwargs):
+        #     ws, wd = ABL.compute(hh)
+        #     return [ws, wd]
         
         def pywake_ref(ws, wd, **kwargs):
             sim_res = farm(
@@ -215,6 +232,13 @@ class hpp_model(hpp_base):
             wind_t_ext = expand_to_lifetime(wind_t, life_y=life_y, intervals_per_hour=intervals_per_hour)
             loads_rel_ext = expand_to_lifetime(loads, life_y=life_y, intervals_per_hour=intervals_per_hour, axis=2) / loads_ref_ext
 
+            # gamma = (loads.sum() / loads_ref_ext.sum()) ** 4
+            # D = gamma / eta_ref * t  # ?
+            # F = 1 - np.exp(-D ** beta)
+            # lamb = np.insert()
+
+
+
             wind_t_ext_deg = expand_to_lifetime(wpp_efficiency*get_wind_ts_degradation_2d(ws=pc_ws, wd=pc_wd, pc=pc, ws_ts=ws, wd_ts=wd, yr=wind_deg_yr, wind_deg=wind_deg, life=ws.size), life_y=life_y, intervals_per_hour=intervals_per_hour)
             return [wind_t, loads_rel_ext, wind_t_ext, wind_t_ext_deg]
 
@@ -224,19 +248,19 @@ class hpp_model(hpp_base):
             solar_t_ext_deg = PVP_deg.compute(solar_t_ext)
             return [solar_t, solar_t_ext, solar_t_ext_deg, Apvp]
             
-        def ems(wind_t, solar_t, b_P, b_E, 
-                cost_of_battery_P_fluct_in_peak_price_ratio, 
-                ptg_MW, HSS_kg,  
-                **kwargs):
-            (price_t_ext,
-             hpp_t, hpp_curt_t, b_t, b_E_SOC_t,
-             penalty_t, P_ptg_t, P_ptg_SB_t, m_H2_t, m_H2_offtake_t, LoS_H2_t, m_H2_demand_t_ext) = EMS.compute(wind_t, solar_t, price_t, b_P, b_E, G_MW,
-                                      battery_depth_of_discharge,
-                                      battery_charge_efficiency, peak_hr_quantile,
-                                      cost_of_battery_P_fluct_in_peak_price_ratio,
-                                      n_full_power_hours_expected_per_day_at_peak_price, price_H2,
-                                      ptg_MW, storage_eff, ptg_deg, hhv, H2_demand, HSS_kg, penalty_factor_H2, min_power_standby,)
-            return [price_t_ext, hpp_t, hpp_curt_t, b_t, b_E_SOC_t, penalty_t, P_ptg_t, P_ptg_SB_t, m_H2_t, m_H2_offtake_t, LoS_H2_t, m_H2_demand_t_ext] 
+        # def ems(wind_t, solar_t, b_P, b_E, 
+        #         cost_of_battery_P_fluct_in_peak_price_ratio, 
+        #         ptg_MW, HSS_kg,
+        #         **kwargs):
+        #     (price_t_ext,
+        #      hpp_t, hpp_curt_t, b_t, b_E_SOC_t,
+        #      penalty_t, P_ptg_t, P_ptg_SB_t, m_H2_t, m_H2_offtake_t, LoS_H2_t, m_H2_demand_t_ext) = EMS.compute(wind_t, solar_t, price_t, b_P, b_E, G_MW,
+        #                               battery_depth_of_discharge,
+        #                               battery_charge_efficiency, peak_hr_quantile,
+        #                               cost_of_battery_P_fluct_in_peak_price_ratio,
+        #                               n_full_power_hours_expected_per_day_at_peak_price, price_H2,
+        #                               ptg_MW, storage_eff, ptg_deg, H2_demand, HSS_kg)
+        #     return [price_t_ext, hpp_t, hpp_curt_t, b_t, b_E_SOC_t, penalty_t, P_ptg_t, P_ptg_SB_t, m_H2_t, m_H2_offtake_t, LoS_H2_t, m_H2_demand_t_ext] 
         
         def battery_degradation(b_E_SOC_t, **kwargs):
             SoH, n_batteries = Batt_deg.compute(b_E_SOC_t, min_LoH)
@@ -247,17 +271,17 @@ class hpp_model(hpp_base):
             return SoH_all
             
         def ems_long_term(SoH_all, solar_t_ext_deg, wind_t_ext_deg, solar_t_ext, wind_t_ext, price_t_ext, b_E,
-                          hpp_curt_t, b_t, b_E_SOC_t,
+                          hpp_curt_t, b_t, b_E_SOC_t, P_ptg_t, m_H2_t, m_H2_offtake_t, ptg_MW,
                           **kwargs):
-            (hpp_t_with_deg, hpp_curt_t_with_deg, b_t_with_deg, b_E_SOC_t_with_deg, 
-                    penalty_t_with_deg, total_curtailment_with_deg,
-                    total_curtailment) = EMS_long_term.compute(SoH_all, wind_t_ext_deg, solar_t_ext_deg, wind_t_ext,
+            (hpp_t_deg, hpp_curt_t_deg, b_t_deg, b_E_SOC_t_deg, 
+                    penalty_t_deg, total_curtailment_deg,
+                    total_curtailment, P_ptg_t_deg, m_H2_t_deg, m_H2_offtake_t_deg) = EMS_long_term.compute(SoH_all, wind_t_ext_deg, solar_t_ext_deg, wind_t_ext,
                                                                solar_t_ext, price_t_ext, b_E, G_MW,
                                                                battery_depth_of_discharge, battery_charge_efficiency,
                                                                hpp_curt_t, b_t, b_E_SOC_t, peak_hr_quantile,
-                                                               n_full_power_hours_expected_per_day_at_peak_price)
-            return [hpp_t_with_deg, hpp_curt_t_with_deg, b_t_with_deg, b_E_SOC_t_with_deg, 
-                    penalty_t_with_deg, total_curtailment_with_deg, total_curtailment]
+                                                               n_full_power_hours_expected_per_day_at_peak_price, P_ptg_t, m_H2_t, m_H2_offtake_t, ptg_MW)
+            return [hpp_t_deg, hpp_curt_t_deg, b_t_deg, b_E_SOC_t_deg, 
+                    penalty_t_deg, total_curtailment_deg, total_curtailment, P_ptg_t_deg, m_H2_t_deg, m_H2_offtake_t_deg]
         
         def wind_cost(Nwt, hh, d, p_rated, wind_t, **kwargs):
             CAPEX_w, OPEX_w = Wind_cost.compute(Nwt, hh, d, p_rated, wind_t)
@@ -279,15 +303,15 @@ class hpp_model(hpp_base):
             CAPEX_ptg, OPEX_ptg, water_consumption_cost = Ptg_cost.compute(ptg_MW, HSS_kg, m_H2_offtake_t)
             return [CAPEX_ptg, OPEX_ptg, water_consumption_cost]
         
-        def finance(hpp_t, m_H2_t, m_H2_offtake_t, m_H2_demand_t_ext, P_ptg_t,
-                                         hpp_curt_t, price_t_ext, penalty_t, 
+        def finance(hpp_t_deg, m_H2_t_deg, m_H2_offtake_t_deg, m_H2_demand_t_ext, P_ptg_t_deg,
+                                         hpp_curt_t_deg, price_t_ext, penalty_t_deg, 
                                          CAPEX_w, CAPEX_s, CAPEX_b, CAPEX_sh, CAPEX_ptg,
                                          OPEX_w, OPEX_s, OPEX_b, OPEX_sh, OPEX_ptg,
                                          water_consumption_cost, **kwargs):
             (CAPEX, OPEX, NPV, IRR, NPV_over_CAPEX, LCOE, LCOH, Revenue, 
                     mean_P_ptg_per_year, mean_AEP, mean_AHP,
-                    penalty_lifetime, break_even_H2_price, break_even_PPA_price, revenues_mean) = Finance.compute(hpp_t, m_H2_t, m_H2_offtake_t, m_H2_demand_t_ext, P_ptg_t,
-                                                     hpp_curt_t, price_H2, penalty_factor_H2, price_t_ext, penalty_t, 
+                    penalty_lifetime, break_even_H2_price, break_even_PPA_price, revenues_mean) = Finance.compute(hpp_t_deg, m_H2_t_deg, m_H2_offtake_t_deg, m_H2_demand_t_ext, P_ptg_t_deg,
+                                                     hpp_curt_t_deg, price_H2, penalty_factor_H2, price_t_ext, penalty_t_deg, 
                                                      CAPEX_w, CAPEX_s, CAPEX_b, CAPEX_sh, CAPEX_ptg,
                                                      OPEX_w, OPEX_s, OPEX_b, OPEX_sh, OPEX_ptg,
                                                      water_consumption_cost, wind_WACC, solar_WACC, battery_WACC, ptg_WACC, tax_rate,)
@@ -301,7 +325,7 @@ class hpp_model(hpp_base):
                                     [('ws', {'shape': [N_time]}),
                                      ('wd', {'shape': [N_time]}),
                                       ],
-                                    abl,
+                                    ABL.compute,
                                     partial_options=[{'dependent': False, 'val': 0}],
                                     ),
 
@@ -363,7 +387,7 @@ class hpp_model(hpp_base):
                                     # ('total_curtailment',),
                                     ('m_H2_demand_t_ext', {'shape': [life_intervals]}),
                                     ],
-                                   ems,
+                                   EMS.compute,
                                    partial_options=[{'dependent': False, 'val': 0}],),
 
         battery_degradation_comp = ComponentWrapper([('b_E_SOC_t',{'shape': [life_intervals + 1]}), ],
@@ -390,14 +414,21 @@ class hpp_model(hpp_base):
                                                ('hpp_curt_t', {'shape': [life_intervals]}),
                                                ('b_t', {'shape': [life_intervals]}),
                                                ('b_E_SOC_t', {'shape': [life_intervals + 1]}),
+                                               ('P_ptg_t', {'shape': [life_intervals]}),
+                                               ('m_H2_t', {'shape': [life_intervals]}),
+                                               ('m_H2_offtake_t', {'shape': [life_intervals]}),
+                                               ('ptg_MW',),
                                                ],
-                                              [('hpp_t_with_deg', {'shape': [life_intervals]}),
-                                               ('hpp_curt_t_with_deg', {'shape': [life_intervals]}),
-                                               ('b_t_with_deg', {'shape': [life_intervals]}),
-                                               ('b_E_SOC_t_with_deg', {'shape': [life_intervals + 1]}),
-                                               ('penalty_t_with_deg', {'shape': [life_intervals]}),
-                                               ('total_curtailment_with_deg', ),
+                                              [('hpp_t_deg', {'shape': [life_intervals]}),
+                                               ('hpp_curt_t_deg', {'shape': [life_intervals]}),
+                                               ('b_t_deg', {'shape': [life_intervals]}),
+                                               ('b_E_SOC_t_deg', {'shape': [life_intervals + 1]}),
+                                               ('penalty_t_deg', {'shape': [life_intervals]}),
+                                               ('total_curtailment_deg', ),
                                                ('total_curtailment', ),
+                                               ('P_ptg_t_deg', {'shape': [life_intervals]}),
+                                               ('m_H2_t_deg', {'shape': [life_intervals]}),
+                                               ('m_H2_offtake_t_deg', {'shape': [life_intervals]}),
                                                ],
                                               ems_long_term,
                                               partial_options=[{'dependent': False, 'val': 0}],),
@@ -453,13 +484,13 @@ class hpp_model(hpp_base):
                                          ptg_cost,
                                          partial_options=[{'dependent': False, 'val': 0}],),
                                  
-        finance_comp = ComponentWrapper([('hpp_t', {'shape': [life_intervals]}),
-                                          ('m_H2_t', {'shape': [life_intervals]}),
-                                          ('m_H2_offtake_t', {'shape': [life_intervals]}),
+        finance_comp = ComponentWrapper([('hpp_t_deg', {'shape': [life_intervals]}),
+                                          ('m_H2_t_deg', {'shape': [life_intervals]}),
+                                          ('m_H2_offtake_t_deg', {'shape': [life_intervals]}),
                                           ('m_H2_demand_t_ext', {'shape': [life_intervals]}),
-                                          ('P_ptg_t', {'shape': [life_intervals]}),
-                                          ('hpp_curt_t', {'shape': [life_intervals]}),
-                                          ('penalty_t', {'shape': [life_intervals]}),
+                                          ('P_ptg_t_deg', {'shape': [life_intervals]}),
+                                          ('hpp_curt_t_deg', {'shape': [life_intervals]}),
+                                          ('penalty_t_deg', {'shape': [life_intervals]}),
                                           ('price_t_ext', {'shape': [life_intervals]}),
                                           ('CAPEX_w', ),
                                           ('CAPEX_s', ),
@@ -525,8 +556,8 @@ class hpp_model(hpp_base):
             'solar [MW]',
             'Battery Energy [MWh]',
             'Battery Power [MW]',
-            # 'Total curtailment [GWh]',
-            # 'Total curtailment with deg [GWh]',
+            'Total curtailment [GWh]',
+            'Total curtailment with deg [GWh]',
             'Awpp [km2]',
             'Apvp [km2]',
             'Plant area [km2]',
@@ -659,7 +690,7 @@ class hpp_model(hpp_base):
             prob['NPV']/1e6,
             prob['IRR'],
             prob['LCOE'],
-            prob['revenues_mean']/1e6,
+            prob['Revenue']/1e6,
             prob['CAPEX']/1e6,
             prob['OPEX']/1e6,
             prob['CAPEX_w']/1e6,
@@ -680,7 +711,7 @@ class hpp_model(hpp_base):
             b_E,
             b_P,
             prob['total_curtailment']/1e3, #[GWh]
-            prob['total_curtailment_with_deg']/1e3, #[GWh]
+            prob['total_curtailment_deg']/1e3, #[GWh]
             Awpp,
             prob['Apvp'],
             max( Awpp , prob['Apvp'] ),

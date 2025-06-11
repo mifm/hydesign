@@ -390,6 +390,19 @@ class ems_P2X_pp:
         intervals_per_hour = 1,
         weeks_per_season_per_year = None,
         load_min_penalty_factor=1e6,
+        hhv=39.3,
+        penalty_factor_H2=None,
+        min_power_standby=None,
+        H2_demand=None,
+        ptg_deg=None,
+        storage_eff=None,
+        price_t=None,
+        G_MW=None,
+        battery_depth_of_discharge=None,
+        battery_charge_efficiency=None,
+        peak_hr_quantile=None,
+        n_full_power_hours_expected_per_day_at_peak_price=None,
+        price_H2=None,
         ):
 
         self.weeks_per_season_per_year = weeks_per_season_per_year
@@ -402,11 +415,21 @@ class ems_P2X_pp:
         self.eff_curve = eff_curve
         self.electrolyzer_eff_curve_type=electrolyzer_eff_curve_type
         self.load_min_penalty_factor = load_min_penalty_factor
+        self.hhv = hhv
+        self.penalty_factor_H2 = penalty_factor_H2
+        self.min_power_standby = min_power_standby
+        self.H2_demand=H2_demand
+        self.ptg_deg=ptg_deg
+        self.storage_eff=storage_eff
+        self.price_t=price_t
+        self.G_MW=G_MW
+        self.battery_depth_of_discharge=battery_depth_of_discharge
+        self.battery_charge_efficiency=battery_charge_efficiency
+        self.peak_hr_quantile=peak_hr_quantile
+        self.n_full_power_hours_expected_per_day_at_peak_price=n_full_power_hours_expected_per_day_at_peak_price
+        self.price_H2=price_H2
         
-    def compute(self, wind_t, solar_t, price_t, b_P, b_E, G_MW, battery_depth_of_discharge, battery_charge_efficiency,
-                peak_hr_quantile, cost_of_battery_P_fluct_in_peak_price_ratio, n_full_power_hours_expected_per_day_at_peak_price, price_H2,
-                ptg_MW, storage_eff, ptg_deg, hhv, m_H2_demand_t, HSS_kg, penalty_factor_H2, min_power_standby):
-
+    def compute(self, wind_t, solar_t, b_P, b_E, cost_of_battery_P_fluct_in_peak_price_ratio, ptg_MW, HSS_kg):
         # Build a synthetic time to avoid problems with time series indexing in ems
         WSPr_df = pd.DataFrame(
             index=pd.date_range(
@@ -416,9 +439,9 @@ class ems_P2X_pp:
 
         WSPr_df['wind_t'] = wind_t
         WSPr_df['solar_t'] = solar_t
-        WSPr_df['price_t'] = price_t
+        WSPr_df['price_t'] = self.price_t
         # WSPr_df['E_batt_MWh_t'] = b_E * np.ones_like(price_t)
-        WSPr_df['m_H2_demand_t'] = m_H2_demand_t  
+        WSPr_df['m_H2_demand_t'] = self.H2_demand
         WSPr_df['E_batt_MWh_t'] = b_E * np.ones_like(wind_t)
         WSPr_df['H2_storage_t'] = HSS_kg * np.ones_like(wind_t)
         
@@ -428,30 +451,30 @@ class ems_P2X_pp:
             price_ts = WSPr_df.price_t,
             P_batt_MW = float(b_P),
             E_batt_MWh_t = WSPr_df.E_batt_MWh_t,
-            hpp_grid_connection = float(G_MW),
-            battery_depth_of_discharge = float(battery_depth_of_discharge),
-            charge_efficiency = float(battery_charge_efficiency),
-            price_H2 = float(price_H2),
+            hpp_grid_connection = float(self.G_MW),
+            battery_depth_of_discharge = float(self.battery_depth_of_discharge),
+            charge_efficiency = float(self.battery_charge_efficiency),
+            price_H2 = float(self.price_H2),
             ptg_MW = float(ptg_MW),
             HSS_kg = float(HSS_kg),
-            storage_eff = float(storage_eff),
-            ptg_deg = float(ptg_deg),
-            hhv = float(hhv),
+            storage_eff = float(self.storage_eff),
+            ptg_deg = float(self.ptg_deg),
+            hhv = float(self.hhv),
             m_H2_demand_ts = WSPr_df.m_H2_demand_t,
             H2_storage_t = WSPr_df.H2_storage_t,
-            penalty_factor_H2 =float(penalty_factor_H2),
+            penalty_factor_H2 =float(self.penalty_factor_H2),
             eff_curve=self.eff_curve,
-            min_power_standby = float(min_power_standby),
+            min_power_standby = float(self.min_power_standby),
             load_min_penalty_factor = float(self.load_min_penalty_factor),
-            peak_hr_quantile = float(peak_hr_quantile),
+            peak_hr_quantile = float(self.peak_hr_quantile),
             cost_of_battery_P_fluct_in_peak_price_ratio = float(cost_of_battery_P_fluct_in_peak_price_ratio),
-            n_full_power_hours_expected_per_day_at_peak_price = float(n_full_power_hours_expected_per_day_at_peak_price),
+            n_full_power_hours_expected_per_day_at_peak_price = float(self.n_full_power_hours_expected_per_day_at_peak_price),
             electrolyzer_eff_curve_type = self.electrolyzer_eff_curve_type
         )
 
         # Extend (by repeating them and stacking) all variable to full lifetime 
         price_t_ext = expand_to_lifetime(
-            price_t, life_y=self.life_y, intervals_per_hour=self.intervals_per_hour, weeks_per_season_per_year = self.weeks_per_season_per_year)
+            self.price_t, life_y=self.life_y, intervals_per_hour=self.intervals_per_hour, weeks_per_season_per_year = self.weeks_per_season_per_year)
         hpp_t = expand_to_lifetime(
             P_HPP_ts, life_y=self.life_y, intervals_per_hour=self.intervals_per_hour, weeks_per_season_per_year = self.weeks_per_season_per_year)
         hpp_curt_t = expand_to_lifetime(
@@ -474,8 +497,8 @@ class ems_P2X_pp:
             LoS_H2_ts, life_y=self.life_y, intervals_per_hour=self.intervals_per_hour)
         # total_curtailment = hpp_curt_t.sum()
         m_H2_demand_t_ext = expand_to_lifetime(
-            m_H2_demand_t, life_y=self.life_y, intervals_per_hour=self.intervals_per_hour)
-        return price_t_ext, hpp_t, hpp_curt_t, b_t, b_E_SOC_t, penalty_t, P_ptg_t, P_ptg_SB_t, m_H2_t, m_H2_offtake_t, LoS_H2_t, m_H2_demand_t_ext#, total_curtailment 
+            self.H2_demand, life_y=self.life_y, intervals_per_hour=self.intervals_per_hour)
+        return [price_t_ext, hpp_t, hpp_curt_t, b_t, b_E_SOC_t, penalty_t, P_ptg_t, P_ptg_SB_t, m_H2_t, m_H2_offtake_t, LoS_H2_t, m_H2_demand_t_ext]#, total_curtailment 
     
 def ems_cplex_P2X(
     wind_ts,
@@ -852,47 +875,273 @@ def ems_cplex_parts_P2X(
     return P_HPP_ts, P_curtailment_ts, P_charge_discharge_ts, P_ptg_ts, P_ptg_SB_ts, E_SOC_ts, m_H2_ts, m_H2_offtake_ts, LoS_H2_ts, penalty_ts
 
 
-def ems_longterm_P2X_proportional(
-    wind_ts,
-    solar_ts,
-    price_ts,
-    P_batt_MW,
-    E_batt_MWh_t,
-    hpp_grid_connection,
-    battery_depth_of_discharge,
-    charge_efficiency,
-    price_H2,
-    ptg_MW,
-    HSS_kg,
-    storage_eff,
-    ptg_deg,
-    hhv,
-    m_H2_demand_ts,
-    H2_storage_t,
-    penalty_factor_H2,
-    eff_curve=None, 
-    min_power_standby=0.1, 
-    load_min_penalty_factor=1e6, 
-    peak_hr_quantile=0.9, 
-    cost_of_battery_P_fluct_in_peak_price_ratio=0.5, 
-    n_full_power_hours_expected_per_day_at_peak_price=3, 
-    electrolyzer_eff_curve_type='production',
-):
-    
-    """Long term EMS solver implemented in cplex
 
+class ems_long_term_operation_p2x_pp:
+    """Pure Python Long term operation EMS. Predicts the operation of the plant throughout the entire lifetime, taking into account the battery
+    and PV degradations.
+    
     Parameters
     ----------
-    
-        Same as ems_cplex_P2X
+    ii_time : indices on the liftime timeseries. Hydesign operates in each range at constant battery health.
+    SoH : Battery state of health at discretization levels
+    wind_t_ext_deg : WPP power time series with degradation [MW]
+    solar_t_ext_deg : WPP power time series with degradation [MW]
+    wind_t_ext : WPP power time series [MW]
+    solar_t_ext : PVP power time series [MW]
+    price_t_ext : Electricity price time series
+    b_P : Battery power capacity
+    b_E : Battery energy storage capacity
+    G_MW : Grid capacity
+    battery_depth_of_discharge : battery depth of discharge
+    battery_charge_efficiency : battery charge efficiency
+    hpp_curt_t : HPP curtailed power time series
+    b_t : Battery charge/discharge power time series
+    b_E_SOC_t : Battery energy SOC time series
+    peak_hr_quantile : Quantile of price time series to define peak price hours
+    n_full_power_hours_expected_per_day_at_peak_price : Penalty occurs if number of full power hours expected per day at peak price are not reached
 
     Returns
     -------
-        Same as ems_cplex_P2X
-        but with a proportional approach to the long term optimization
-        and no penalty for not reaching expected energy production at peak hours
-        or rapid fluctuations of the battery power.
-    
+    hpp_t_with_deg : HPP power time series 
+    hpp_curt_t_with_deg : HPP curtailed power time series
+    b_t_with_deg : Battery charge/discharge power time series
+    b_E_SOC_t_with_deg : Battery energy SOC time series 
+    penalty_t_with_deg : penalty for not reaching expected energy production at peak hours
+    total_curtailment : total curtailment in the lifetime
     """
-    a = (P_wind_deg + P_solar_deg) / (P_wind + P_solar)
+
+    def __init__(
+        self, 
+        N_time,
+        num_batteries = 1,
+        life_y = 25,
+        intervals_per_hour = 1,
+        ems_type='energy_penalty',
+        load_min_penalty_factor=1e6,
+        eff_curve=None,
+        electrolyzer_eff_curve_type='production',
+        hhv = 39.3,
+        ):
+
+        self.N_time = N_time
+        self.intervals_per_hour = intervals_per_hour
+        self.life_y = life_y
+        self.life_h = 365 * 24 * life_y
+        self.life_intervals = self.life_h * intervals_per_hour
+        self.ems_type = ems_type
+        self.load_min_penalty_factor = load_min_penalty_factor
+        self.eff_curve=eff_curve
+        self.electrolyzer_eff_curve_type=electrolyzer_eff_curve_type
+        self.hhv = hhv
+
+
+    def compute(self, SoH, wind_t_ext_deg, solar_t_ext_deg, wind_t_ext, solar_t_ext, price_t_ext, 
+                b_E, G_MW, battery_depth_of_discharge, battery_charge_efficiency, hpp_curt_t, b_t, b_E_SOC_t, peak_hr_quantile,
+                n_full_power_hours_expected_per_day_at_peak_price,
+                P_ptg_t, m_H2_t, m_H2_offtake_t, ptg_MW):
+        
+        if self.ems_type == 'energy_penalty':
+            ems_longterm = self.operation_solar_batt_deg_p2x
+        else:
+            raise Warning("This class should only be used for energy_penalty")
+
+        if self.intervals_per_hour == 1:
+            freq = '1h'
+        else:
+            freq = f'{60 / self.intervals_per_hour:.0f}min'
+
+        args = dict(wind_t_deg = wind_t_ext_deg,
+                solar_t_deg = solar_t_ext_deg,
+                batt_degradation = SoH,
+                wind_t = wind_t_ext,
+                solar_t = solar_t_ext,
+                hpp_curt_t = hpp_curt_t,
+                b_t = b_t,
+                b_E_SOC_t = b_E_SOC_t,
+                G_MW = float(G_MW),
+                b_E = float(b_E),
+                battery_depth_of_discharge = float(battery_depth_of_discharge),
+                battery_charge_efficiency = float(battery_charge_efficiency),
+                b_E_SOC_0 = None,
+                price_ts = price_t_ext,
+                peak_hr_quantile = peak_hr_quantile,
+            n_full_power_hours_expected_per_day_at_peak_price = n_full_power_hours_expected_per_day_at_peak_price,
+            freq=freq,
+            P_ptg_t=P_ptg_t, m_H2_t=m_H2_t, m_H2_offtake_t=m_H2_offtake_t, ptg_MW=ptg_MW)
+
+        Hpp_deg, P_curt_deg, b_t_sat, b_E_SOC_t_sat, penalty_t_with_deg, p_ptg_deg, m_H2_t_deg, m_H2_offtake_t_deg = ems_longterm(**args)
+        
+        hpp_t_with_deg = Hpp_deg
+        hpp_curt_t_with_deg = P_curt_deg
+        b_t_with_deg = b_t_sat
+        b_E_SOC_t_with_deg = b_E_SOC_t_sat
+        penalty_t_with_deg = penalty_t_with_deg
+        total_curtailment_with_deg = P_curt_deg.sum()
+        total_curtailment = hpp_curt_t.sum()
+        return (hpp_t_with_deg, hpp_curt_t_with_deg, b_t_with_deg, b_E_SOC_t_with_deg,
+                penalty_t_with_deg, total_curtailment_with_deg, total_curtailment, p_ptg_deg, m_H2_t_deg, m_H2_offtake_t_deg)
+
+    
+    
+    def operation_solar_batt_deg_p2x(
+        self,
+        wind_t_deg,
+        solar_t_deg,
+        batt_degradation,
+        wind_t,  #  this method is not using wind_t
+        solar_t,  #  this method is not using solar_t
+        hpp_curt_t,
+        b_t,
+        b_E_SOC_t,
+        G_MW,
+        b_E,
+        battery_depth_of_discharge,
+        battery_charge_efficiency,
+        price_ts,
+        b_E_SOC_0 = None,
+        peak_hr_quantile = 0.9,
+        n_full_power_hours_expected_per_day_at_peak_price = 3,
+        freq='1h',
+        P_ptg_t=None,
+        m_H2_t=None,
+        m_H2_offtake_t=None,
+        ptg_MW=None,
+    ):
+    
+        """EMS operation for degraded PV and battery based on an existing EMS.
+    
+        Parameters
+        ----------
+        wind_t_deg: Wind time series including degradation
+        solar_t_deg: PV time series including degradation
+        batt_degradation: Battery degradation as health factor [0=dead,1=new]
+        wind_t: WPP power time series
+        solar_t: PVP power time series
+        hpp_curt_t: HPP curtailment time series results form an EMS planed without degradation
+        b_t: HPP battery power (charge/discharge) time series results form an EMS planed without degradation
+        b_E_SOC_t: HPP battery state of charge (SoC) time series results form an EMS planed without degradation
+        b_E_SOC_0: Initial charge status of the actual operation
+        price_ts : price time series
+        G_MW : grid connection    
+        E_batt_MWh_t : battery energy capacity time series
+        battery_depth_of_discharge : battery depth of discharge
+        battery_charge_efficiency : battery charge efficiency
+        peak_hr_quantile : quantile of price time series to define peak price hours
+        cost_of_battery_P_fluct_in_peak_price_ratio : cost of battery power fluctuations computed as a peak price ratio
+        n_full_power_hours_expected_per_day_at_peak_price : Penalty occurs if number of full power hours expected per day at peak price are not reached
+    
+        Returns
+        -------
+        Hpp_deg : HPP power time series 
+        P_curt_deg : HPP curtailed power time series
+        b_t_sat : Battery charge/discharge power time series
+        b_E_SOC_t_sat : Battery energy SOC time series  
+        penalty_ts : penalty for not reaching expected energy production at peak hours
+        """
+        B_p = np.max(np.abs(b_t))
+        
+        wind_solar_t_deg = solar_t_deg + wind_t_deg
+        
+        b_t_less_sol = b_t.copy()
+        dt = 1
+        
+        # Reduction in power to battery due to reduction of solar
+        for i in range(len(b_t)):
+            if b_t[i] < 0:
+    
+                # Try to follow SoC to the maximum
+                if -b_t[i] > wind_solar_t_deg[i]:    
+                    b_t_less_sol[i] = -wind_solar_t_deg[i]
+    
+                b_t_less_sol[i] = np.clip(
+                    b_t_less_sol[i], 
+                    -B_p,
+                    B_p)
+        
+        # Initialize the SoC
+        b_E_SOC_t_sat = b_E_SOC_t.copy()
+        if b_E_SOC_0 == None:
+            try:
+                b_E_SOC_t_sat[0]= b_E_SOC_t[0]
+            except:
+                raise('len(b_E_SOC_t):', len(b_E_SOC_t))
+        else:
+            b_E_SOC_t_sat[0]= b_E_SOC_0
+    
+        # Update the SoC
+        for i in range(len(b_t_less_sol)):
+            if b_t_less_sol[i] < 0: # charging
+                b_E_SOC_t_sat[i+1] = b_E_SOC_t_sat[i] - b_t_less_sol[i] * dt * battery_charge_efficiency
+            if b_t_less_sol[i] >= 0: # discharging
+                b_E_SOC_t_sat[i+1] = b_E_SOC_t_sat[i] - b_t_less_sol[i] * dt / battery_charge_efficiency
+            
+            b_E_SOC_t_sat[i+1] = np.clip(
+                b_E_SOC_t_sat[i+1], 
+                (1-battery_depth_of_discharge) * b_E * batt_degradation[i], 
+                b_E * batt_degradation[i]  )
+            
+        # Recompute the battery power
+        b_t_sat = b_t.copy()
+        for i in range(len(b_t_sat)):
+            if b_t[i] < 0:
+                b_t_sat[i] = ( ( b_E_SOC_t_sat[i] - b_E_SOC_t_sat[i+1] ) / battery_charge_efficiency ) / dt
+            elif b_t[i] >= 0:
+                b_t_sat[i] = ( (b_E_SOC_t_sat[i] - b_E_SOC_t_sat[i+1] )  * battery_charge_efficiency ) / dt 
+        
+        
+        # Hpp_deg = np.minimum( wind_t_deg + solar_t_deg + b_t_sat, G_MW)
+        # prod_red = (wind_t + solar_t + b_t) - (wind_t_deg + solar_t_deg + b_t_sat)
+        # H2_to_grid_ratio = np.nan_to_num(P_ptg / (P_ptg + P_hpp)
+        # First see if production reduction can be covered by reducing curtailment:
+        # P_curt_deg = np.minimum(0, P_curt - prod_red)
+        # Try propotionally changing degraded variables:
+        f_ptg = np.nan_to_num(P_ptg_t / (wind_t + solar_t + b_t))
+        # f_grid = np.nan_to_num(p_grid / (wind_t + solar_t + b_t))
+        
+        p_ptg_deg = f_ptg * (wind_t_deg + solar_t_deg + b_t_sat)
+        if self.electrolyzer_eff_curve_type == 'production':
+            H2_curve_list = [(load * ptg_MW, H2 * ptg_MW) for load, H2 in self.eff_curve]
+        elif self.electrolyzer_eff_curve_type == 'efficiency':
+            H2_curve_list = [(load * ptg_MW, load * ptg_MW * efficiency / self.hhv * 1000) for load, efficiency in self.eff_curve]
+        else:
+            raise ValueError(f'electrolyzer_eff_curve_type is: "{self.electrolyzer_eff_curve_type}". Available options are ["production", "efficiency"]')
+        m_H2_t_deg = np.interp(p_ptg_deg, np.ravel([x[0] for x in H2_curve_list]), np.ravel([x[1] for x in H2_curve_list]), left=0, right=0)
+        m_H2_offtake_t_deg = np.nan_to_num(m_H2_offtake_t / m_H2_t) * m_H2_t_deg
+        # p_grid_deg = f_grid * (wind_t_deg + solar_t_deg + b_t_sat)
+        # f_ptg = p_ptg / (wind_t + solar_t + b_t)
+            
+        Hpp_deg = np.minimum( wind_t_deg + solar_t_deg + b_t_sat - p_ptg_deg, G_MW)
+        P_curt_deg = np.maximum( wind_t_deg + solar_t_deg + b_t_sat - p_ptg_deg - G_MW, 0)
+            
+        # Compute penalty per week
+        H_df = pd.DataFrame(
+            np.copy(Hpp_deg),
+            columns=['hpp_t_with_deg'],
+            index=pd.date_range(
+            start='01-01-1991 00:00',
+            periods=len(Hpp_deg),
+            freq=freq,
+            )
+        )
+        H_df['price_t_ext'] = price_ts
+        price_peak = np.quantile(H_df['price_t_ext'],peak_hr_quantile)
+        H_df['peak'] = H_df['price_t_ext']>=price_peak
+        H_df.loc[~H_df['peak'],'hpp_t_with_deg']=0
+    
+        N_days = 7
+        H_df_week = H_df.resample(f'{N_days}d').sum()
+    
+        e_peak_day_expected = n_full_power_hours_expected_per_day_at_peak_price*G_MW 
+        e_peak_period_expected = e_peak_day_expected*N_days
+    
+        H_df_week['e_peak_period_expected'] = e_peak_period_expected
+        H_df_week['e_penalty'] = H_df_week['e_peak_period_expected'] - H_df_week['hpp_t_with_deg']
+        H_df_week['penalty'] = price_peak*np.maximum(0, H_df_week['e_penalty'])
+    
+        penalty_df = H_df_week['penalty'].reindex_like(H_df).fillna(0.0)
+        penalty_ts = penalty_df.values.flatten()
+        
+        return Hpp_deg, P_curt_deg, b_t_sat, b_E_SOC_t_sat, penalty_ts, p_ptg_deg, m_H2_t_deg, m_H2_offtake_t_deg
+
+
     
