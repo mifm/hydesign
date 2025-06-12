@@ -150,7 +150,6 @@ class hpp_model_P2X(hpp_base):
                 'ptg_MW',
                 'HSS_kg',
                 'storage_eff',
-                # 'ptg_deg',
                 'hhv',
                 'm_H2_demand_t',
                 'penalty_factor_H2',
@@ -347,7 +346,6 @@ class hpp_model_P2X(hpp_base):
         prob.set_val('land_use_per_solar_MW', sim_pars['land_use_per_solar_MW'])
         prob.set_val('hhv', sim_pars['hhv'])
         prob.set_val('min_power_standby', sim_pars['min_power_standby'])
-        # prob.set_val('ptg_deg', sim_pars['ptg_deg'])
         
         prob.set_val('storage_eff', sim_pars['storage_eff'])
 

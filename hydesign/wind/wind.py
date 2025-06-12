@@ -349,84 +349,84 @@ class wpp_with_degradation(om.ExplicitComponent):
             share = self.share_WT_deg_types,
             intervals_per_hour=self.intervals_per_hour)
 
-class wpp_with_degradation_pp_2d:
-    """
-    Pure python 2d Wind power plant model
+# class wpp_with_degradation_pp_2d:
+#     """
+#     Pure python 2d Wind power plant model
 
-    Provides the wind power time series using wake affected power curve and the wind speed time series.
+#     Provides the wind power time series using wake affected power curve and the wind speed time series.
 
-    Parameters
-    ----------
-    N_time : Number of time-steps in weather simulation
-    life_h : lifetime in hours
-    N_ws : number of points in the power curves
-    wpp_efficiency : WPP efficiency
-    wind_deg_yr : year list for providing WT degradation curve
-    wind_deg : degradation losses at yr
-    share_WT_deg_types : share ratio between two degradation mechanism (0: only shift in power curve, 1: degradation as a loss factor )
-    ws : Power curve wind speed list
-    pcw : Wake affected power curve
-    wst : wind speed time series at the hub height
+#     Parameters
+#     ----------
+#     N_time : Number of time-steps in weather simulation
+#     life_h : lifetime in hours
+#     N_ws : number of points in the power curves
+#     wpp_efficiency : WPP efficiency
+#     wind_deg_yr : year list for providing WT degradation curve
+#     wind_deg : degradation losses at yr
+#     share_WT_deg_types : share ratio between two degradation mechanism (0: only shift in power curve, 1: degradation as a loss factor )
+#     ws : Power curve wind speed list
+#     pcw : Wake affected power curve
+#     wst : wind speed time series at the hub height
 
-    Returns
-    -------
-    wind_t_ext_deg : power time series with degradation extended through lifetime
+#     Returns
+#     -------
+#     wind_t_ext_deg : power time series with degradation extended through lifetime
 
-    """
+#     """
 
-    def __init__(
-        self, 
-        N_time,
-        N_ws = 51,
-        wpp_efficiency = 0.95,
-        life_y = 25,
-        intervals_per_hour=1,
-        wind_deg_yr = [0, 25],
-        wind_deg = [0, 25*1/100],
-        share_WT_deg_types = 0.5,
-        weeks_per_season_per_year = None,
-        ):
-        super().__init__()
-        self.N_time = N_time
-        self.life_y = life_y
-        self.life_h = life_y*365*24
-        self.life_intervals = self.life_h * intervals_per_hour
-        self.intervals_per_hour = intervals_per_hour
-        # number of points in the power curves
-        self.N_ws = N_ws
-        self.wpp_efficiency = wpp_efficiency
+#     def __init__(
+#         self, 
+#         N_time,
+#         N_ws = 51,
+#         wpp_efficiency = 0.95,
+#         life_y = 25,
+#         intervals_per_hour=1,
+#         wind_deg_yr = [0, 25],
+#         wind_deg = [0, 25*1/100],
+#         share_WT_deg_types = 0.5,
+#         weeks_per_season_per_year = None,
+#         ):
+#         super().__init__()
+#         self.N_time = N_time
+#         self.life_y = life_y
+#         self.life_h = life_y*365*24
+#         self.life_intervals = self.life_h * intervals_per_hour
+#         self.intervals_per_hour = intervals_per_hour
+#         # number of points in the power curves
+#         self.N_ws = N_ws
+#         self.wpp_efficiency = wpp_efficiency
         
-        # number of elements in WT degradation curve
-        self.wind_deg_yr = wind_deg_yr
-        self.wind_deg = wind_deg
-        self.share_WT_deg_types = share_WT_deg_types
+#         # number of elements in WT degradation curve
+#         self.wind_deg_yr = wind_deg_yr
+#         self.wind_deg = wind_deg
+#         self.share_WT_deg_types = share_WT_deg_types
 
-        # In case data is provided as weeks per season
-        self.weeks_per_season_per_year = weeks_per_season_per_year
+#         # In case data is provided as weeks per season
+#         self.weeks_per_season_per_year = weeks_per_season_per_year
         
 
-    def compute(self, ws, wd, pcw, wst, wdt):
+#     def compute(self, ws, wd, pcw, wst, wdt):
         
-        wst_ext = expand_to_lifetime(
-            wst, life_y = self.life_y,
-            intervals_per_hour=self.intervals_per_hour,)
+#         wst_ext = expand_to_lifetime(
+#             wst, life_y = self.life_y,
+#             intervals_per_hour=self.intervals_per_hour,)
         
-        wdt_ext = expand_to_lifetime(
-            wdt, life_y = self.life_y,
-            intervals_per_hour=self.intervals_per_hour,)
+#         wdt_ext = expand_to_lifetime(
+#             wdt, life_y = self.life_y,
+#             intervals_per_hour=self.intervals_per_hour,)
         
-        wind_t_ext_deg = self.wpp_efficiency*get_wind_ts_degradation_2d(
-            ws=ws,
-            wd=wd,
-            pc=pcw, 
-            ws_ts=wst_ext, 
-            wd_ts=wdt_ext, 
-            yr=self.wind_deg_yr, 
-            wind_deg=self.wind_deg, 
-            life=self.life_intervals, 
-            share=self.share_WT_deg_types,
-            intervals_per_hour=self.intervals_per_hour)
-        return wind_t_ext_deg
+#         wind_t_ext_deg = self.wpp_efficiency*get_wind_ts_degradation_2d(
+#             ws=ws,
+#             wd=wd,
+#             pc=pcw, 
+#             ws_ts=wst_ext, 
+#             wd_ts=wdt_ext, 
+#             yr=self.wind_deg_yr, 
+#             wind_deg=self.wind_deg, 
+#             life=self.life_intervals, 
+#             share=self.share_WT_deg_types,
+#             intervals_per_hour=self.intervals_per_hour)
+#         return wind_t_ext_deg
 
 # -----------------------------------------------------------------------
 # Auxiliar functions 

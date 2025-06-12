@@ -39,7 +39,6 @@ class ems_P2X(om.ExplicitComponent):
     price_H2: Price of Hydrogen
     ptg_MW: Electrolyzer power capacity
     storage_eff: Compressor efficiency for hydrogen storage
-    ptg_deg: Electrolyzer rate of degradation annually
     hhv: High heat value
     m_H2_demand_t: Hydrogen demand times series
     HSS_kg: Hydrogen storage system capacity
@@ -137,9 +136,6 @@ class ems_P2X(om.ExplicitComponent):
         self.add_input(
             'storage_eff',
             desc="Compressor efficiency for hydrogen storage.")
-        # self.add_input(
-        #     'ptg_deg',
-        #     desc="Electrolyzer rate of degradation annually.")
         self.add_input(
             'hhv',
             desc="High heat value.")
@@ -268,7 +264,6 @@ class ems_P2X(om.ExplicitComponent):
         price_H2 = inputs['price_H2'][0]
         ptg_MW = inputs['ptg_MW'][0]
         storage_eff = inputs['storage_eff'][0]
-        # ptg_deg = inputs['ptg_deg'][0]
         hhv = inputs['hhv'][0]
         penalty_factor_H2 = inputs['penalty_factor_H2'][0]
         min_power_standby = inputs['min_power_standby'][0]
@@ -302,7 +297,6 @@ class ems_P2X(om.ExplicitComponent):
             ptg_MW = ptg_MW,
             HSS_kg = HSS_kg,
             storage_eff = storage_eff,
-            # ptg_deg = ptg_deg,
             hhv = hhv,
             m_H2_demand_ts = WSPr_df.m_H2_demand_t,
             H2_storage_t = WSPr_df.H2_storage_t,

@@ -3,7 +3,7 @@ import pandas as pd
 import openmdao.api as om
 import os
 
-from hydesign.wind.wind import get_rotor_d, get_wind_ts_degradation_2d, get_pywake_farm_pc, wpp_with_degradation_pp_2d
+from hydesign.wind.wind import get_rotor_d, get_wind_ts_degradation_2d, get_pywake_farm_pc
 from hydesign.assembly.hpp_assembly import hpp_base
 from hydesign.openmdao_wrapper import ComponentWrapper
 from hydesign.weather.weather import ABL_pp
