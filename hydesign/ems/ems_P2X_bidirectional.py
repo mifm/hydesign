@@ -143,9 +143,9 @@ class ems_P2X_bidirectional(om.ExplicitComponent):
         self.add_input(
             'storage_eff',
             desc="Compressor efficiency for hydrogen storage.")
-        self.add_input(
-            'ptg_deg',
-            desc="Electrolyzer rate of degradation annually.")
+        # self.add_input(
+        #     'ptg_deg',
+        #     desc="Electrolyzer rate of degradation annually.")
         self.add_input(
             'hhv',
             desc="High heat value.")
@@ -287,7 +287,7 @@ class ems_P2X_bidirectional(om.ExplicitComponent):
             'n_full_power_hours_expected_per_day_at_peak_price'][0]
         price_H2 = inputs['price_H2'][0]
         storage_eff = inputs['storage_eff'][0]
-        ptg_deg = inputs['ptg_deg'][0]
+        # ptg_deg = inputs['ptg_deg'][0]
         hhv = inputs['hhv'][0]
         penalty_factor_H2 = inputs['penalty_factor_H2'][0]
         ptg_MW = inputs['ptg_MW'][0]
@@ -328,7 +328,7 @@ class ems_P2X_bidirectional(om.ExplicitComponent):
             ptg_MW = ptg_MW,
             HSS_kg = HSS_kg,
             storage_eff = storage_eff,
-            ptg_deg = ptg_deg,
+            # ptg_deg = ptg_deg,
             hhv = hhv,
             m_H2_demand_ts = WSPr_df.m_H2_demand_t,
             H2_storage_t = WSPr_df.H2_storage_t,
@@ -455,7 +455,7 @@ def ems_cplex_P2X_bidirectional(
             ptg_MW=ptg_MW,
             HSS_kg=HSS_kg,
             storage_eff=storage_eff,
-            ptg_deg=ptg_deg,
+            # ptg_deg=ptg_deg,
             hhv=hhv,
             m_H2_demand_ts = m_H2_demand_ts_sel,
             H2_storage_t = H2_storage_t_sel,
@@ -516,7 +516,7 @@ def ems_cplex_parts_P2X_bidirectional(
     ptg_MW,
     HSS_kg,
     storage_eff,
-    ptg_deg,
+    # ptg_deg,
     hhv,
     m_H2_demand_ts,
     H2_storage_t,

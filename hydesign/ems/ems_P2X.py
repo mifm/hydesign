@@ -137,9 +137,9 @@ class ems_P2X(om.ExplicitComponent):
         self.add_input(
             'storage_eff',
             desc="Compressor efficiency for hydrogen storage.")
-        self.add_input(
-            'ptg_deg',
-            desc="Electrolyzer rate of degradation annually.")
+        # self.add_input(
+        #     'ptg_deg',
+        #     desc="Electrolyzer rate of degradation annually.")
         self.add_input(
             'hhv',
             desc="High heat value.")
@@ -268,7 +268,7 @@ class ems_P2X(om.ExplicitComponent):
         price_H2 = inputs['price_H2'][0]
         ptg_MW = inputs['ptg_MW'][0]
         storage_eff = inputs['storage_eff'][0]
-        ptg_deg = inputs['ptg_deg'][0]
+        # ptg_deg = inputs['ptg_deg'][0]
         hhv = inputs['hhv'][0]
         penalty_factor_H2 = inputs['penalty_factor_H2'][0]
         min_power_standby = inputs['min_power_standby'][0]
@@ -302,7 +302,7 @@ class ems_P2X(om.ExplicitComponent):
             ptg_MW = ptg_MW,
             HSS_kg = HSS_kg,
             storage_eff = storage_eff,
-            ptg_deg = ptg_deg,
+            # ptg_deg = ptg_deg,
             hhv = hhv,
             m_H2_demand_ts = WSPr_df.m_H2_demand_t,
             H2_storage_t = WSPr_df.H2_storage_t,
@@ -914,6 +914,8 @@ class ems_long_term_operation_p2x_pp:
         eff_curve=None,
         electrolyzer_eff_curve_type='production',
         hhv = 39.3,
+        ptg_deg_yr=None,
+        ptg_deg_profile=None,
         ):
 
         self.N_time = N_time
@@ -926,6 +928,8 @@ class ems_long_term_operation_p2x_pp:
         self.eff_curve=eff_curve
         self.electrolyzer_eff_curve_type=electrolyzer_eff_curve_type
         self.hhv = hhv
+        self.ptg_deg_yr = ptg_deg_yr
+        self.ptg_deg_profile = ptg_deg_profile
 
 
     def compute(self, SoH, wind_t_ext_deg, solar_t_ext_deg, wind_t_ext, solar_t_ext, price_t_ext, 
@@ -1098,7 +1102,13 @@ class ems_long_term_operation_p2x_pp:
             H2_curve_list = [(load * ptg_MW, load * ptg_MW * efficiency / self.hhv * 1000) for load, efficiency in self.eff_curve]
         else:
             raise ValueError(f'electrolyzer_eff_curve_type is: "{self.electrolyzer_eff_curve_type}". Available options are ["production", "efficiency"]')
-        m_H2_t_deg = np.interp(p_ptg_deg, np.ravel([x[0] for x in H2_curve_list]), np.ravel([x[1] for x in H2_curve_list]), left=0, right=0)
+
+        # take into account p2x degradation
+        t_over_year = np.arange(self.life_intervals) / (365 * 24 * self.intervals_per_hour)
+        degradation = np.interp(t_over_year, self.ptg_deg_yr, self.ptg_deg_profile)
+        factor = 1 - degradation
+
+        m_H2_t_deg = factor * np.interp(p_ptg_deg, np.ravel([x[0] for x in H2_curve_list]), np.ravel([x[1] for x in H2_curve_list]), left=0, right=0)
         m_H2_offtake_t_deg = np.nan_to_num(m_H2_offtake_t / m_H2_t) * m_H2_t_deg
         # p_grid_deg = f_grid * (wind_t_deg + solar_t_deg + b_t_sat)
         # f_ptg = p_ptg / (wind_t + solar_t + b_t)

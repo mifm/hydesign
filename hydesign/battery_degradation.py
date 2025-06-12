@@ -148,6 +148,7 @@ class battery_degradation_pp:
         intervals_per_hour = 1,
         weeks_per_season_per_year = None,
         battery_deg = True,
+        min_LoH=None,
     ):
 
         self.life_h = 365 * 24 * life_y
@@ -157,6 +158,7 @@ class battery_degradation_pp:
         self.weather_fn = weather_fn
         self.battery_deg = battery_deg
         self.battery_rf_matrix = None
+        self.min_LoH=min_LoH
 
         weather = pd.read_csv(
             weather_fn, 
@@ -172,7 +174,7 @@ class battery_degradation_pp:
 
         self.air_temp_K_t = air_temp_K_t
 
-    def compute(self, b_E_SOC_t, min_LoH):
+    def compute(self, b_E_SOC_t):
 
         num_batteries = self.num_batteries
         life_intervals = self.life_intervals
@@ -194,8 +196,8 @@ class battery_degradation_pp:
                 for n_batteries in np.arange(num_batteries, dtype=int) + 1:
                     LoC, ind_q, _ = battery_replacement(
                         rf_DoD, rf_SoC, rf_count, rf_i_start, avr_tem, 
-                        min_LoH, num_batteries=n_batteries)
-                    if 1-LoC[-1] >= min_LoH: # stop replacing batteries
+                        self.min_LoH, num_batteries=n_batteries)
+                    if 1-LoC[-1] >= self.min_LoH: # stop replacing batteries
                         break         
 
                 SoH_all = np.interp( 

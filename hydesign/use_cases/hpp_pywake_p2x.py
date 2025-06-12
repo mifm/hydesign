@@ -91,7 +91,7 @@ class hpp_model(hpp_base):
         hhv = sim_pars['hhv']
         min_power_standby = sim_pars['min_power_standby']
         ptg_deg_yr = sim_pars['ptg_deg_yr']
-        ptg_deg = sim_pars['ptg_deg']
+        ptg_deg_profile = sim_pars['ptg_deg']
 
         penalty_factor_H2 = sim_pars['penalty_factor_H2']
         storage_eff = sim_pars['storage_eff']
@@ -135,7 +135,8 @@ class hpp_model(hpp_base):
         Batt_deg = battery_degradation_pp(weather_fn = input_ts_fn,
                                           num_batteries = num_batteries,
                                           life_y = life_y,
-                                          intervals_per_hour = intervals_per_hour)
+                                          intervals_per_hour = intervals_per_hour,
+                                          min_LoH=min_LoH)
 
         Batt_loss = battery_loss_in_capacity_due_to_temp_pp(weather_fn=input_ts_fn, num_batteries=num_batteries,
                                                             life_y = life_y,
@@ -144,7 +145,7 @@ class hpp_model(hpp_base):
                                                    life_y=life_y, intervals_per_hour=intervals_per_hour,
                                                    eff_curve=eff_curve,
                                                    electrolyzer_eff_curve_type=electrolyzer_eff_curve_type,
-                                                   hhv=hhv,)
+                                                   hhv=hhv,ptg_deg_yr=ptg_deg_yr,ptg_deg_profile=ptg_deg_profile)
         
         Wind_cost = wpp_cost_pp(wind_turbine_cost=sim_pars['wind_turbine_cost'],
                         wind_civil_works_cost=sim_pars['wind_civil_works_cost'],
@@ -283,7 +284,7 @@ class hpp_model(hpp_base):
         #     return [price_t_ext, hpp_t, hpp_curt_t, b_t, b_E_SOC_t, penalty_t, P_ptg_t, P_ptg_SB_t, m_H2_t, m_H2_offtake_t, LoS_H2_t, m_H2_demand_t_ext] 
         
         def battery_degradation(b_E_SOC_t, **kwargs):
-            SoH, n_batteries = Batt_deg.compute(b_E_SOC_t, min_LoH)
+            SoH, n_batteries = Batt_deg.compute(b_E_SOC_t)
             return [SoH, n_batteries]
         
         def battery_loss(SoH, **kwargs):
