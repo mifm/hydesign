@@ -565,7 +565,7 @@ class ems_long_term_operation(om.ExplicitComponent):
 # Auxiliar functions for ems modelling
 # -----------------------------------------------------------------------
 
-def expand_to_lifetime(x, life_y = 25, intervals_per_hour=1, weeks_per_season_per_year=None, axis=0, additional_intervals=0):
+def expand_to_lifetime(x, life_y = 25, intervals_per_hour=1, weeks_per_season_per_year=None, axis=0, additional_intervals=0, life=None):
     """
     Expands (by repeating) a given variable to match an expected lifetime length.
     
@@ -574,14 +574,17 @@ def expand_to_lifetime(x, life_y = 25, intervals_per_hour=1, weeks_per_season_pe
     Parameters
     ----------
     x: input variable
-    life: lifetime in no of intervals.
+    life: lifetime in number of intervals. If None, it is computed from
+        ``life_y`` and ``intervals_per_hour``.
     weeks_per_season_per_year: None or int.
 
     Returns
     -------
     x_ext: extended variable
     """    
-    life = life_y*365*24*intervals_per_hour+additional_intervals
+    if life is None:
+        life = life_y*365*24*intervals_per_hour
+    life = life + additional_intervals
     if weeks_per_season_per_year == None:
         
         # Extend the data to match the expected lifetime

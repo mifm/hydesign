@@ -247,7 +247,19 @@ class hpp_model(hpp_base):
 
 
 
-            wind_t_ext_deg = expand_to_lifetime(wpp_efficiency*get_wind_ts_degradation_2d(ws=pc_ws, wd=pc_wd, pc=pc, ws_ts=ws, wd_ts=wd, yr=wind_deg_yr, wind_deg=wind_deg, life=ws.size), life_y=life_y, intervals_per_hour=intervals_per_hour)
+            wind_t_ext_deg_raw = expand_to_lifetime(
+                wpp_efficiency*get_wind_ts_degradation_2d(
+                    ws=pc_ws,
+                    wd=pc_wd,
+                    pc=pc,
+                    ws_ts=ws,
+                    wd_ts=wd,
+                    yr=wind_deg_yr,
+                    wind_deg=wind_deg,
+                    life=ws.size),
+                life_y=life_y,
+                intervals_per_hour=intervals_per_hour)
+            wind_t_ext_deg = np.minimum(wind_t_ext_deg_raw, wind_t_ext)
             return [wind_t, loads_rel_ext, wind_t_ext, wind_t_ext_deg]
 
         def pv(surface_tilt, surface_azimuth, solar_MW, DC_AC_ratio, **kwargs):
