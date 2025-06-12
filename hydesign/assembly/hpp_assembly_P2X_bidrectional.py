@@ -233,29 +233,24 @@ class hpp_model_P2X_bidirectional(hpp_base):
             'HSS_kg',
             ])
         model.add_subsystem(
-            'finance', 
+            'finance',
             finance(
-                N_time = N_time, 
-                # Depreciation curve
+                N_time = N_time,
                 depreciation_yr = sim_pars['depreciation_yr'],
                 depreciation = sim_pars['depreciation'],
-                # Inflation curve
                 inflation_yr = sim_pars['inflation_yr'],
                 inflation = sim_pars['inflation'],
                 ref_yr_inflation = sim_pars['ref_yr_inflation'],
-                # Early paying or CAPEX Phasing
                 phasing_yr = sim_pars['phasing_yr'],
                 phasing_CAPEX = sim_pars['phasing_CAPEX'],
-                # life_h = life_h
+                price_H2 = sim_pars['price_H2'],
+                wind_WACC = sim_pars['wind_WACC'],
+                solar_WACC = sim_pars['solar_WACC'],
+                battery_WACC = sim_pars['battery_WACC'],
+                ptg_WACC = sim_pars['ptg_WACC'],
+                tax_rate = sim_pars['tax_rate'],
                 ),
-            promotes_inputs=['price_H2',
-                             'wind_WACC',
-                             'solar_WACC', 
-                             'battery_WACC',
-                             'ptg_WACC',
-                             'tax_rate',
-                             # 'penalty_factor_H2',
-                            ],
+            promotes_inputs=[],
             promotes_outputs=['NPV',
                               'IRR',
                               'NPV_over_CAPEX',
@@ -340,16 +335,9 @@ class hpp_model_P2X_bidirectional(hpp_base):
         prob.set_val('n_full_power_hours_expected_per_day_at_peak_price',
                      sim_pars['n_full_power_hours_expected_per_day_at_peak_price'])        
         #prob.set_val('min_LoH', sim_pars['min_LoH'])
-        prob.set_val('wind_WACC', sim_pars['wind_WACC'])
-        prob.set_val('solar_WACC', sim_pars['solar_WACC'])
-        prob.set_val('battery_WACC', sim_pars['battery_WACC'])
-        prob.set_val('ptg_WACC', sim_pars['ptg_WACC'])
-        prob.set_val('tax_rate', sim_pars['tax_rate'])
         prob.set_val('land_use_per_solar_MW', sim_pars['land_use_per_solar_MW'])
         prob.set_val('hhv', sim_pars['hhv'])
         prob.set_val('ptg_deg', sim_pars['ptg_deg'])
-        prob.set_val('price_H2', sim_pars['price_H2'])
-        prob.set_val('penalty_factor_H2', sim_pars['penalty_factor_H2'])
         prob.set_val('storage_eff', sim_pars['storage_eff'])
         prob.set_val('min_power_standby', sim_pars['min_power_standby'])
 

@@ -184,7 +184,7 @@ class hpp_model(hpp_base):
                                transportation_distance = sim_pars['H2_transportation_distance'],
                                N_time = N_time,
                                )
-        Finance = finance_P2X_pp(N_time = N_time, 
+        Finance = finance_P2X_pp(N_time = N_time,
                         depreciation_yr = sim_pars['depreciation_yr'],
                         depreciation = sim_pars['depreciation'],
                         inflation_yr = sim_pars['inflation_yr'],
@@ -192,7 +192,15 @@ class hpp_model(hpp_base):
                         ref_yr_inflation = sim_pars['ref_yr_inflation'],
                         phasing_yr = sim_pars['phasing_yr'],
                         phasing_CAPEX = sim_pars['phasing_CAPEX'],
-                        life_y = life_y)
+                        life_y = life_y,
+                        price_H2 = price_H2,
+                        penalty_factor_H2 = penalty_factor_H2,
+                        wind_WACC = wind_WACC,
+                        solar_WACC = solar_WACC,
+                        battery_WACC = battery_WACC,
+                        ptg_WACC = ptg_WACC,
+                        tax_rate = tax_rate,
+                        )
 
 
         # def abl(hh, **kwargs):
@@ -308,13 +316,13 @@ class hpp_model(hpp_base):
                                          CAPEX_w, CAPEX_s, CAPEX_b, CAPEX_sh, CAPEX_ptg,
                                          OPEX_w, OPEX_s, OPEX_b, OPEX_sh, OPEX_ptg,
                                          water_consumption_cost, **kwargs):
-            (CAPEX, OPEX, NPV, IRR, NPV_over_CAPEX, LCOE, LCOH, Revenue, 
+            (CAPEX, OPEX, NPV, IRR, NPV_over_CAPEX, LCOE, LCOH, Revenue,
                     mean_P_ptg_per_year, mean_AEP, mean_AHP,
                     penalty_lifetime, break_even_H2_price, break_even_PPA_price, revenues_mean) = Finance.compute(hpp_t_deg, m_H2_t_deg, m_H2_offtake_t_deg, m_H2_demand_t_ext, P_ptg_t_deg,
-                                                     hpp_curt_t_deg, price_H2, penalty_factor_H2, price_t_ext, penalty_t_deg, 
+                                                     hpp_curt_t_deg, price_t_ext, penalty_t_deg,
                                                      CAPEX_w, CAPEX_s, CAPEX_b, CAPEX_sh, CAPEX_ptg,
                                                      OPEX_w, OPEX_s, OPEX_b, OPEX_sh, OPEX_ptg,
-                                                     water_consumption_cost, wind_WACC, solar_WACC, battery_WACC, ptg_WACC, tax_rate,)
+                                                     water_consumption_cost,)
             return [CAPEX, OPEX, NPV, IRR, NPV_over_CAPEX, LCOE, LCOH, Revenue, 
                     mean_P_ptg_per_year, mean_AEP, mean_AHP,
                     penalty_lifetime, break_even_H2_price, break_even_PPA_price, revenues_mean]

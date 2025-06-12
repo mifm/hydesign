@@ -39,6 +39,13 @@ class finance_P2X(om.ExplicitComponent):
         phasing_yr,
         phasing_CAPEX,
         life_y = 25,
+        price_H2=None,
+        penalty_factor_H2=None,
+        wind_WACC=None,
+        solar_WACC=None,
+        battery_WACC=None,
+        ptg_WACC=None,
+        tax_rate=None,
         ):
         """Initialization of the HPP finance model
 
@@ -63,6 +70,14 @@ class finance_P2X(om.ExplicitComponent):
         # Early paying or CAPEX Phasing
         self.phasing_yr = phasing_yr
         self.phasing_CAPEX = phasing_CAPEX
+
+        self.price_H2 = price_H2
+        self.penalty_factor_H2 = penalty_factor_H2
+        self.wind_WACC = wind_WACC
+        self.solar_WACC = solar_WACC
+        self.battery_WACC = battery_WACC
+        self.ptg_WACC = ptg_WACC
+        self.tax_rate = tax_rate
 
     def setup(self):
         self.add_input('price_t_ext',
@@ -103,10 +118,6 @@ class finance_P2X(om.ExplicitComponent):
                        units = 'MW',
                        shape=[self.life_h])
         
-        self.add_input('price_H2',
-                       desc = "H2 price")
-        self.add_input('penalty_factor_H2',
-                       desc="Penalty for not meeting hydrogen demand in an hour")
         
         self.add_input('CAPEX_w',
                        desc="CAPEX wpp")
@@ -135,20 +146,6 @@ class finance_P2X(om.ExplicitComponent):
         self.add_input("water_consumption_cost",
                        desc = "Water usage and purification for the electrolysis")
 
-        self.add_input('wind_WACC',
-                       desc="After tax WACC for onshore WT")
-        
-        self.add_input('solar_WACC',
-                       desc="After tax WACC for solar PV")
-        
-        self.add_input('battery_WACC',
-                       desc="After tax WACC for stationary storge li-ion batteries")
-        
-        self.add_input('ptg_WACC',
-                       desc = "After tax WACC for power to gas plant")
-        
-        self.add_input('tax_rate',
-                       desc="Corporate tax rate")
         
         self.add_output('CAPEX',
                         desc="CAPEX")
@@ -270,8 +267,8 @@ class finance_P2X(om.ExplicitComponent):
         df['m_H2_demand_t_ext'] = inputs['m_H2_demand_t_ext']
         df['P_ptg_t'] = inputs['P_ptg_t']
         df['hpp_curt_t'] = inputs['hpp_curt_t']
-        price_H2 = inputs['price_H2']
-        penalty_factor_H2 = inputs['penalty_factor_H2']
+        price_H2 = self.price_H2
+        penalty_factor_H2 = self.penalty_factor_H2
         price_t = inputs['price_t_ext']
         df['penalty_t'] = inputs['penalty_t']
         
@@ -300,19 +297,19 @@ class finance_P2X(om.ExplicitComponent):
             inputs['CAPEX_b'],
             inputs['CAPEX_el'],
             inputs['CAPEX_ptg'],
-            inputs['wind_WACC'],
-            inputs['solar_WACC'],
-            inputs['battery_WACC'],
-            inputs['ptg_WACC'],
+            self.wind_WACC,
+            self.solar_WACC,
+            self.battery_WACC,
+            self.ptg_WACC,
             )
         WACC_after_tax_LCOE = calculate_WACC(
             inputs['CAPEX_w'],
             inputs['CAPEX_s'],
             inputs['CAPEX_b'],
             inputs['CAPEX_el'],
-            inputs['wind_WACC'],
-            inputs['solar_WACC'],
-            inputs['battery_WACC'],
+            self.wind_WACC,
+            self.solar_WACC,
+            self.battery_WACC,
             )
 
         # Apply CAPEX phasing using the inflation index for all years before the start of the project (t=0). 
@@ -348,7 +345,7 @@ class finance_P2X(om.ExplicitComponent):
             Net_revenue_t = revenues.values.flatten(),
             investment_cost = CAPEX_eq, # Include phasing
             maintenance_cost_per_year = OPEX,
-            tax_rate = inputs['tax_rate'],
+            tax_rate = self.tax_rate,
             discount_rate = WACC_after_tax,
             depreciation_yr = depreciation_yr,
             depreciation = depreciation,
@@ -386,7 +383,7 @@ class finance_P2X(om.ExplicitComponent):
         # LCOH calculation using LCOE
         OPEX_ptg = inputs['OPEX_ptg'] + inputs['water_consumption_cost']
         CAPEX_ptg = inputs['CAPEX_ptg']
-        hpp_discount_factor_H2 = inputs['ptg_WACC']
+        hpp_discount_factor_H2 = self.ptg_WACC
         OPEX_ptg_el = LCOE*np.sum(inputs['P_ptg_t']) #operational cost for the electrilcity consumed to produce hydrogen
         level_costs_H2 = np.sum(OPEX_ptg / (1 + hpp_discount_factor_H2)**iy) + OPEX_ptg_el + CAPEX_ptg
         AHP_per_year = df.groupby('i_year').m_H2_t.mean()*365*24
@@ -403,7 +400,7 @@ class finance_P2X(om.ExplicitComponent):
             df = df, 
             CAPEX = CAPEX_eq, 
             OPEX = OPEX, 
-            tax_rate = inputs['tax_rate'], 
+            tax_rate = self.tax_rate, 
             discount_rate = WACC_after_tax, 
             price_el = price_t,     
             depreciation_yr = depreciation_yr, 
@@ -419,7 +416,7 @@ class finance_P2X(om.ExplicitComponent):
                 df = df, 
                 CAPEX = CAPEX_eq, 
                 OPEX = OPEX, 
-                tax_rate = inputs['tax_rate'],
+                tax_rate = self.tax_rate,
                 discount_rate = WACC_after_tax, 
                 price_H2 = price_H2,
                 depreciation_yr = depreciation_yr, 
@@ -437,6 +434,7 @@ class finance_P2X(om.ExplicitComponent):
         outputs['penalty_lifetime'] = df['penalty_t'].sum()
         outputs['break_even_H2_price'] = break_even_H2_price
         outputs['break_even_PPA_price'] = break_even_PPA_price
+
 
 class finance_P2X_pp:
     """Hybrid power plant financial model to estimate the overall profitability of the hybrid power plant with P2X.
@@ -464,6 +462,13 @@ class finance_P2X_pp:
         phasing_yr,
         phasing_CAPEX,
         life_y = 25,
+        price_H2=None,
+        penalty_factor_H2=None,
+        wind_WACC=None,
+        solar_WACC=None,
+        battery_WACC=None,
+        ptg_WACC=None,
+        tax_rate=None,
         ):
         """Initialization of the HPP finance model
 
@@ -489,13 +494,20 @@ class finance_P2X_pp:
         self.phasing_yr = phasing_yr
         self.phasing_CAPEX = phasing_CAPEX
 
+        self.price_H2 = price_H2
+        self.penalty_factor_H2 = penalty_factor_H2
+        self.wind_WACC = wind_WACC
+        self.solar_WACC = solar_WACC
+        self.battery_WACC = battery_WACC
+        self.ptg_WACC = ptg_WACC
+        self.tax_rate = tax_rate
+
 
     def compute(self, hpp_t, m_H2_t, m_H2_offtake_t, m_H2_demand_t_ext, P_ptg_t,
-                hpp_curt_t, price_H2, penalty_factor_H2, price_t_ext, penalty_t, 
+                hpp_curt_t, price_t_ext, penalty_t,
                 CAPEX_w, CAPEX_s, CAPEX_b, CAPEX_el, CAPEX_ptg,
                 OPEX_w, OPEX_s, OPEX_b, OPEX_el, OPEX_ptg,
-                water_consumption_cost, wind_WACC, solar_WACC, battery_WACC, ptg_WACC, tax_rate,
-                
+                water_consumption_cost,
                 ):
         """ Calculating the financial metrics of the hybrid power plant project.
 
@@ -565,8 +577,8 @@ class finance_P2X_pp:
         df['m_H2_demand_t_ext'] = m_H2_demand_t_ext
         df['P_ptg_t'] = P_ptg_t
         df['hpp_curt_t'] = hpp_curt_t
-        price_H2 = np.atleast_1d(price_H2)
-        penalty_factor_H2 = np.atleast_1d(penalty_factor_H2)
+        price_H2 = np.atleast_1d(self.price_H2)
+        penalty_factor_H2 = np.atleast_1d(self.penalty_factor_H2)
         price_t = price_t_ext
         df['penalty_t'] = penalty_t
         
@@ -595,19 +607,19 @@ class finance_P2X_pp:
             CAPEX_b,
             CAPEX_el,
             CAPEX_ptg,
-            wind_WACC,
-            solar_WACC,
-            battery_WACC,
-            ptg_WACC,
+            self.wind_WACC,
+            self.solar_WACC,
+            self.battery_WACC,
+            self.ptg_WACC,
             )
         WACC_after_tax_LCOE = calculate_WACC(
             CAPEX_w,
             CAPEX_s,
             CAPEX_b,
             CAPEX_el,
-            wind_WACC,
-            solar_WACC,
-            battery_WACC,
+            self.wind_WACC,
+            self.solar_WACC,
+            self.battery_WACC,
             )
 
         # Apply CAPEX phasing using the inflation index for all years before the start of the project (t=0). 
@@ -643,7 +655,7 @@ class finance_P2X_pp:
             Net_revenue_t = revenues.values.flatten(),
             investment_cost = CAPEX_eq, # Include phasing
             maintenance_cost_per_year = OPEX,
-            tax_rate = tax_rate,
+            tax_rate = self.tax_rate,
             discount_rate = WACC_after_tax,
             depreciation_yr = depreciation_yr,
             depreciation = depreciation,
@@ -681,7 +693,7 @@ class finance_P2X_pp:
         # LCOH calculation using LCOE
         OPEX_ptg = OPEX_ptg + water_consumption_cost
         CAPEX_ptg = CAPEX_ptg
-        hpp_discount_factor_H2 = ptg_WACC
+        hpp_discount_factor_H2 = self.ptg_WACC
         OPEX_ptg_el = LCOE*np.sum(P_ptg_t) #operational cost for the electrilcity consumed to produce hydrogen
         level_costs_H2 = np.sum(OPEX_ptg / (1 + hpp_discount_factor_H2)**iy) + OPEX_ptg_el + CAPEX_ptg
         AHP_per_year = df.groupby('i_year').m_H2_t.mean()*365*24
@@ -694,16 +706,16 @@ class finance_P2X_pp:
             LCOH = 1e6
 
         break_even_H2_price = calculate_break_even_H2_price(
-            penalty_factor_H2 = penalty_factor_H2, 
-            df = df, 
-            CAPEX = CAPEX_eq, 
-            OPEX = OPEX, 
-            tax_rate = tax_rate, 
-            discount_rate = WACC_after_tax, 
-            price_el = price_t,     
-            depreciation_yr = depreciation_yr, 
-            depreciation = depreciation, 
-            DEVEX = DEVEX, 
+            penalty_factor_H2 = penalty_factor_H2,
+            df = df,
+            CAPEX = CAPEX_eq,
+            OPEX = OPEX,
+            tax_rate = self.tax_rate,
+            discount_rate = WACC_after_tax,
+            price_el = price_t,
+            depreciation_yr = depreciation_yr,
+            depreciation = depreciation,
+            DEVEX = DEVEX,
             inflation_index = inflation_index,
         )
 
@@ -713,13 +725,13 @@ class finance_P2X_pp:
                 penalty_factor_H2 = penalty_factor_H2, 
                 df = df, 
                 CAPEX = CAPEX_eq, 
-                OPEX = OPEX, 
-                tax_rate = tax_rate,
-                discount_rate = WACC_after_tax, 
-                price_H2 = price_H2,
-                depreciation_yr = depreciation_yr, 
-                depreciation = depreciation, 
-                DEVEX = DEVEX, 
+                OPEX = OPEX,
+                tax_rate = self.tax_rate,
+                discount_rate = WACC_after_tax,
+                price_H2 = self.price_H2,
+                depreciation_yr = depreciation_yr,
+                depreciation = depreciation,
+                DEVEX = DEVEX,
                 inflation_index = inflation_index,
                 )
             )
