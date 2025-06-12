@@ -1,4 +1,3 @@
-# %%
 import numpy as np
 import pandas as pd
 import openmdao.api as om
@@ -91,7 +90,9 @@ class hpp_model(hpp_base):
         price_H2 = sim_pars['price_H2']        
         hhv = sim_pars['hhv']
         min_power_standby = sim_pars['min_power_standby']
+        ptg_deg_yr = sim_pars['ptg_deg_yr']
         ptg_deg = sim_pars['ptg_deg']
+
         penalty_factor_H2 = sim_pars['penalty_factor_H2']
         storage_eff = sim_pars['storage_eff']
         
@@ -121,7 +122,6 @@ class hpp_model(hpp_base):
                          penalty_factor_H2=penalty_factor_H2,
                          min_power_standby=min_power_standby,
                          H2_demand=H2_demand,
-                         ptg_deg=ptg_deg,
                          storage_eff=storage_eff,
                          price_t=price_t,
                          G_MW=G_MW,
@@ -410,6 +410,7 @@ class hpp_model(hpp_base):
                                    EMS.compute,
                                    partial_options=[{'dependent': False, 'val': 0}],),
 
+        # ptg_degradation_comp = ComponentWrapper(inputs, outputs, function, kwargs)
         battery_degradation_comp = ComponentWrapper([('b_E_SOC_t',{'shape': [life_intervals + 1]}), ],
                                                     [('SoH', {'shape': [life_intervals]}),
                                                      ('n_batteries', ),
@@ -610,6 +611,7 @@ class hpp_model(hpp_base):
             'cost_of_battery_P_fluct_in_peak_price_ratio',
             'ptg_MW [MW]',
             'HSS_kg [kg]',
+            'Yaw offset [deg]',
             ]   
     
     
@@ -624,7 +626,7 @@ class hpp_model(hpp_base):
         # PtG plant design
         ptg_MW, HSS_kg,
         # Wind turbine control
-        yaw
+        yaw,
         ):
         """Calculating the financial metrics of the hybrid power plant project.
 

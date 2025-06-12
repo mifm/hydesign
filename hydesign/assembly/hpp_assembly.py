@@ -249,7 +249,10 @@ class hpp_base:
         print('---------------') 
 
         for i_v, var in enumerate(self.list_vars):
+            if np.size(x_opt[i_v])==1:
                 print(f'{var}: {x_opt[i_v]:.3f}')
+            else:
+                print(f'{var}: ' + 'mean, std, min, max ' + f'{np.mean(x_opt[i_v]):3f}' + f'{np.std(x_opt[i_v]):3f}' + f'{np.min(x_opt[i_v]):3f}' + f'{np.max(x_opt[i_v]):3f}')
         print()    
         print()
         for i_v, var in enumerate(self.list_out_vars):

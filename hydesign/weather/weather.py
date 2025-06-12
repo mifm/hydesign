@@ -104,7 +104,7 @@ class ABL_pp:
         wst = np.nan_to_num(ds_interpolated.WS.values.flatten())
         if self.interpolate_wd:
             wd = ds_interpolated.WD.values.ravel()
-            return [wst, wd]
+            return wst, wd
         else:
             return wst
 

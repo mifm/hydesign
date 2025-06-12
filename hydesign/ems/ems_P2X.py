@@ -394,7 +394,6 @@ class ems_P2X_pp:
         penalty_factor_H2=None,
         min_power_standby=None,
         H2_demand=None,
-        ptg_deg=None,
         storage_eff=None,
         price_t=None,
         G_MW=None,
@@ -419,7 +418,6 @@ class ems_P2X_pp:
         self.penalty_factor_H2 = penalty_factor_H2
         self.min_power_standby = min_power_standby
         self.H2_demand=H2_demand
-        self.ptg_deg=ptg_deg
         self.storage_eff=storage_eff
         self.price_t=price_t
         self.G_MW=G_MW
@@ -458,7 +456,6 @@ class ems_P2X_pp:
             ptg_MW = float(ptg_MW),
             HSS_kg = float(HSS_kg),
             storage_eff = float(self.storage_eff),
-            ptg_deg = float(self.ptg_deg),
             hhv = float(self.hhv),
             m_H2_demand_ts = WSPr_df.m_H2_demand_t,
             H2_storage_t = WSPr_df.H2_storage_t,
@@ -513,7 +510,6 @@ def ems_cplex_P2X(
     ptg_MW,
     HSS_kg,
     storage_eff,
-    ptg_deg,
     hhv,
     m_H2_demand_ts,
     H2_storage_t,
@@ -572,7 +568,6 @@ def ems_cplex_P2X(
             ptg_MW=ptg_MW,
             HSS_kg=HSS_kg,
             storage_eff=storage_eff,
-            ptg_deg=ptg_deg,
             hhv=hhv,
             m_H2_demand_ts = m_H2_demand_ts_sel,
             H2_storage_t = H2_storage_t_sel,
@@ -630,7 +625,6 @@ def ems_cplex_parts_P2X(
     ptg_MW,
     HSS_kg,
     storage_eff,
-    ptg_deg,
     hhv,
     m_H2_demand_ts,
     H2_storage_t,
@@ -663,7 +657,6 @@ def ems_cplex_parts_P2X(
     ptg_MW: Electrolyzer power capacity
     HSS_kg: Hydrogen storage capacity
     storage_eff: Compressor efficiency for hydrogen storage
-    ptg_deg: Electrolyzer rate of degradation annually
     hhv: High heat value
     m_H2_demand_ts: Hydrogen demand times series 
     penalty_factor_H2: Penalty on not meeting hydrogen demand in an hour
@@ -877,7 +870,7 @@ def ems_cplex_parts_P2X(
 
 
 class ems_long_term_operation_p2x_pp:
-    """Pure Python Long term operation EMS. Predicts the operation of the plant throughout the entire lifetime, taking into account the battery
+    """Pure Python Long term operation EMS. Predicts the operation of the plant throughout the entire lifetime, taking into account the battery, wind, p2g
     and PV degradations.
     
     Parameters

@@ -114,7 +114,7 @@ class ComponentWrapper(ExplicitComponent):
                 outputs[k] = v
         else:
             res = self.function(**{x: inputs[x] for x in self.all_input_keys})
-        if not isinstance(res, list):
+        if not isinstance(res, list) and not isinstance(res, tuple):
             res = [res]
         for o, r in zip(self.output_keys, res):
             outputs[o] = r
