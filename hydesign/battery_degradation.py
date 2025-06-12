@@ -441,7 +441,7 @@ def battery_replacement(
                 ind_q = ind_q + ind_q_new[1:]        
 
         except:
-            raise('This many bateries are not required. Reduce the number.')
+            raise ValueError('This many batteries are not required. Reduce the number.')
 
     return LoC, ind_q, ind_q_last
 
