@@ -106,7 +106,15 @@ class ComponentWrapper(ExplicitComponent):
 
 
     def compute(self, inputs, outputs):
-        """Compute cost model"""
+        """Execute the wrapped function and write its results to ``outputs``.
+
+        Parameters
+        ----------
+        inputs : openmdao.api.Vector
+            Input values provided by OpenMDAO.
+        outputs : openmdao.api.Vector
+            Vector to populate with the function results.
+        """
         t = time.time()
         if self.additional_outputs is not None:
             res, additional_output = self.function(**{x: inputs[x] for x in self.all_input_keys})
