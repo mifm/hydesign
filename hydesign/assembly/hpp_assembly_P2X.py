@@ -135,6 +135,11 @@ class hpp_model_P2X(hpp_base):
                 # life_h = life_h, 
                 ems_type=ems_type,
                 electrolyzer_eff_curve_type=electrolyzer_eff_curve_type,
+                price_H2=sim_pars['price_H2'],
+                storage_eff=sim_pars['storage_eff'],
+                hhv=sim_pars['hhv'],
+                penalty_factor_H2=sim_pars['penalty_factor_H2'],
+                min_power_standby=sim_pars['min_power_standby'],
                 ),
             promotes_inputs=[
                 'price_t',
@@ -146,14 +151,14 @@ class hpp_model_P2X(hpp_base):
                 'peak_hr_quantile',
                 'cost_of_battery_P_fluct_in_peak_price_ratio',
                 'n_full_power_hours_expected_per_day_at_peak_price',
-                'price_H2',
+                # 'price_H2',
                 'ptg_MW',
                 'HSS_kg',
-                'storage_eff',
-                'hhv',
+                # 'storage_eff',
+                # 'hhv',
                 'm_H2_demand_t',
-                'penalty_factor_H2',
-                'min_power_standby',
+                # 'penalty_factor_H2',
+                # 'min_power_standby',
                 ],
             promotes_outputs=[
                 'total_curtailment'
@@ -344,10 +349,10 @@ class hpp_model_P2X(hpp_base):
         #prob.set_val('min_LoH', sim_pars['min_LoH'])
         
         prob.set_val('land_use_per_solar_MW', sim_pars['land_use_per_solar_MW'])
-        prob.set_val('hhv', sim_pars['hhv'])
-        prob.set_val('min_power_standby', sim_pars['min_power_standby'])
+        # prob.set_val('hhv', sim_pars['hhv'])
+        # prob.set_val('min_power_standby', sim_pars['min_power_standby'])
         
-        prob.set_val('storage_eff', sim_pars['storage_eff'])
+        # prob.set_val('storage_eff', sim_pars['storage_eff'])
 
         self.prob = prob
 
