@@ -21,17 +21,23 @@ import rainflow
 from hydesign.ems.ems import expand_to_lifetime
 
 class battery_degradation(om.ExplicitComponent):
-    """
-    Battery degradation model to predict the degradation of the battery throughout the lifetime of the plant
+    """OpenMDAO component modelling the battery degradation over the plant life.
 
     Parameters
     ----------
-    b_E_SOC_t : battery energy SOC time series
-    min_LoH : minimum level of health before death of battery
-
-    Returns
-    -------
-    SoH : battery state of health at discretization levels
+    weather_fn : str
+        Path to the weather CSV file used for temperature information.
+    num_batteries : int, optional
+        Maximum number of battery replacements allowed. Default is ``1``.
+    life_y : int, optional
+        Plant lifetime in years. Default is ``25``.
+    intervals_per_hour : int, optional
+        Number of simulation steps per hour. Default is ``1``.
+    weeks_per_season_per_year : int, optional
+        Number of representative weeks per season. ``None`` disables the
+        expansion.
+    battery_deg : bool, optional
+        If ``False`` no degradation is computed. Default is ``True``.
     """
 
     def __init__(
@@ -127,17 +133,25 @@ class battery_degradation(om.ExplicitComponent):
             outputs['n_batteries'] = 1
 
 class battery_degradation_pp:
-    """
-    Pure Python Battery degradation model to predict the degradation of the battery throughout the lifetime of the plant
+    """Pure Python model for estimating battery degradation over the plant life.
 
     Parameters
     ----------
-    b_E_SOC_t : battery energy SOC time series
-    min_LoH : minimum level of health before death of battery
-
-    Returns
-    -------
-    SoH : battery state of health at discretization levels
+    weather_fn : str
+        Path to the weather CSV file used for temperature information.
+    num_batteries : int, optional
+        Maximum number of battery replacements allowed. Default is ``1``.
+    life_y : int, optional
+        Plant lifetime in years. Default is ``25``.
+    intervals_per_hour : int, optional
+        Number of simulation steps per hour. Default is ``1``.
+    weeks_per_season_per_year : int, optional
+        Number of representative weeks per season. ``None`` disables the
+        expansion.
+    battery_deg : bool, optional
+        If ``False`` no degradation is computed. Default is ``True``.
+    min_LoH : float, optional
+        Minimum state of health before a battery is replaced.
     """
 
     def __init__(
@@ -212,16 +226,23 @@ class battery_degradation_pp:
         return SoH, n_batteries
 
 class battery_loss_in_capacity_due_to_temp(om.ExplicitComponent):
-    """
-    Battery non-permanent loss of capacity due to low temp
+    """OpenMDAO component for temporary capacity loss due to low temperatures.
 
     Parameters
     ----------
-    SoH : battery state of health at discretization levels
-
-    Returns
-    -------
-    SoH_all : battery state of health at discretization levels
+    weather_fn : str
+        Path to the weather CSV file used for temperature information.
+    num_batteries : int, optional
+        Number of batteries in the system. Default is ``1``.
+    life_y : int, optional
+        Plant lifetime in years. Default is ``25``.
+    intervals_per_hour : int, optional
+        Number of simulation steps per hour. Default is ``1``.
+    weeks_per_season_per_year : int, optional
+        Number of representative weeks per season. ``None`` disables the
+        expansion.
+    battery_deg : bool, optional
+        If ``False`` no degradation is computed. Default is ``True``.
     """
 
     def __init__(
@@ -281,16 +302,23 @@ class battery_loss_in_capacity_due_to_temp(om.ExplicitComponent):
             outputs['SoH_all'] = np.ones(self.life_intervals)
 
 class battery_loss_in_capacity_due_to_temp_pp:
-    """
-    Pure Python Battery non-permanent loss of capacity due to low temp
+    """Pure Python version of :class:`battery_loss_in_capacity_due_to_temp`.
 
     Parameters
     ----------
-    SoH : battery state of health at discretization levels
-
-    Returns
-    -------
-    SoH_all : battery state of health at discretization levels
+    weather_fn : str
+        Path to the weather CSV file used for temperature information.
+    num_batteries : int, optional
+        Number of batteries in the system. Default is ``1``.
+    life_y : int, optional
+        Plant lifetime in years. Default is ``25``.
+    intervals_per_hour : int, optional
+        Number of simulation steps per hour. Default is ``1``.
+    weeks_per_season_per_year : int, optional
+        Number of representative weeks per season. ``None`` disables the
+        expansion.
+    battery_deg : bool, optional
+        If ``False`` no degradation is computed. Default is ``True``.
     """
 
     def __init__(
