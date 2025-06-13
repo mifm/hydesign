@@ -340,9 +340,9 @@ class hpp_model_P2X_bidirectional(hpp_base):
                      sim_pars['n_full_power_hours_expected_per_day_at_peak_price'])        
         #prob.set_val('min_LoH', sim_pars['min_LoH'])
         prob.set_val('land_use_per_solar_MW', sim_pars['land_use_per_solar_MW'])
-        prob.set_val('hhv', sim_pars['hhv'])
-        prob.set_val('storage_eff', sim_pars['storage_eff'])
-        prob.set_val('min_power_standby', sim_pars['min_power_standby'])
+        # prob.set_val('hhv', sim_pars['hhv'])
+        # prob.set_val('storage_eff', sim_pars['storage_eff'])
+        # prob.set_val('min_power_standby', sim_pars['min_power_standby'])
 
         self.prob = prob
 
