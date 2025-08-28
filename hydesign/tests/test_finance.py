@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from hydesign.finance.finance import calculate_NPV_IRR, calculate_WACC
+from hydesign.costmodels import calculate_NPV_IRR, calculate_WACC
 from hydesign.tests.test_files import tfp
 
 
