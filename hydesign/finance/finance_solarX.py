@@ -13,6 +13,13 @@ import scipy as sp
 
 # import openpyxl
 from hydesign.openmdao_wrapper import ComponentWrapper
+from hydesign.costmodels import (
+    calculate_NPV_IRR,
+    calculate_revenues,
+    calculate_break_even_PPA_price,
+    calculate_CAPEX_phasing,
+    get_inflation_index,
+)
 
 
 class finance_solarX:
@@ -433,204 +440,10 @@ class finance_solarX_comp(ComponentWrapper):
 
 # -----------------------------------------------------------------------
 # Auxiliar functions for financial modelling
+
 # -----------------------------------------------------------------------
-
-
-def calculate_NPV_IRR(
-    Net_revenue_t,
-    investment_cost,
-    maintenance_cost_per_year,
-    tax_rate,
-    discount_rate,
-    depreciation_yr,
-    depreciation,
-    development_cost,
-    inflation_index,
-):
-    """A function to estimate the yearly cashflow using the net revenue time series, and the yearly OPEX costs.
-    It then calculates the NPV and IRR using the yearly cashlow, the CAPEX, the WACC after tax, and the tax rate.
-
-    Parameters
-    ----------
-    Net_revenue_t : Net revenue time series
-    investment_cost : Capital costs
-    maintenance_cost_per_year : yearly operation and maintenance costs
-    tax_rate : tax rate
-    discount_rate : Discount rate
-    depreciation_yr : Depreciation curve (x-axis) time in years
-    depreciation : Depreciation curve at the given times
-    development_cost : DEVEX
-    inflation_index : Yearly Inflation index time-sereis
-
-    Returns
-    -------
-    NPV : Net present value
-    IRR : Internal rate of return
-    """
-
-    yr = np.arange(
-        len(Net_revenue_t) + 1
-    )  # extra year to start at 0 and end at end of lifetime.
-    depre = np.interp(yr, depreciation_yr, depreciation)
-
-    # EBITDA: earnings before interest and taxes in nominal prices
-    EBITDA = (Net_revenue_t - maintenance_cost_per_year) * inflation_index[1:]
-
-    # EBIT taxable income
-    depreciation_on_each_year = np.diff(investment_cost * depre)
-    EBIT = EBITDA - depreciation_on_each_year
-
-    # Taxes
-    Taxes = EBIT * tax_rate
-
-    Net_income = EBITDA - Taxes
-    Cashflow = np.insert(Net_income, 0, -investment_cost - development_cost)
-    NPV = npf.npv(discount_rate, Cashflow)
-    if NPV > 0:
-        IRR = npf.irr(Cashflow)
-    else:
-        IRR = 0
-    return NPV, IRR
-
-
-def calculate_revenues(df):
-    # Extract prices from df (assuming prices are stored in columns)
-    price_el_t = df["price_el_t"]  # Price of electricity
-    price_h2_t = df["price_h2_t"]  # Price of hydrogen
-    price_biogas_t = df["price_biogas_t"]  # Price of biogas (input cost)
-
-    # Calculate the contribution of each price to the revenue
-    revenue_el = df["hpp_t"] * price_el_t  # Revenue from electricity
-    revenue_h2 = df["h2_t"] * price_h2_t  # Revenue from hydrogen
-    # revenue_biogas = df['biogas_t'] * price_biogas_t  # Cost (negative revenue) from biogas
-
-    # Calculate the total revenue for each time step
-    df["revenue"] = (
-        revenue_el + revenue_h2 - df["penalty_t"] - df["penalty_q_t"]
-    )  # Adjust with penalties
-
-    # Return the yearly mean revenue, scaled to annual hours (365 * 24)
-    return df.groupby("i_year")["revenue"].mean() * 365 * 24
-
-
-def calculate_break_even_PPA_price(
-    df,
-    CAPEX,
-    OPEX,
-    tax_rate,
-    discount_rate,
-    depreciation_yr,
-    depreciation,
-    DEVEX,
-    inflation_index,
-    initial_price_el=50,
-    initial_price_h2=50,
-    initial_price_q=50,
-):
-
-    # Generalized objective function for any price (electricity, hydrogen, or heat)
-    def fun(price, price_type):
-        # Update the price in the DataFrame depending on the price_type
-        if price_type == "el":
-            df["price_el_t"] = np.broadcast_to(
-                price, df["price_el_t"].shape
-            )  # Update price for electricity
-        elif price_type == "h2":
-            df["price_h2_t"] = np.broadcast_to(
-                price, df["price_h2_t"].shape
-            )  # Update price for hydrogen
-
-        # Calculate the total revenue with the updated price
-        revenues = calculate_revenues(df)
-
-        # Calculate NPV with the updated revenue
-        NPV, _ = calculate_NPV_IRR(
-            Net_revenue_t=revenues.values.flatten(),
-            investment_cost=CAPEX,
-            maintenance_cost_per_year=OPEX,
-            tax_rate=tax_rate,
-            discount_rate=discount_rate,
-            depreciation_yr=depreciation_yr,
-            depreciation=depreciation,
-            development_cost=DEVEX,
-            inflation_index=inflation_index,
-        )
-        return NPV**2  # Minimize the square of NPV
-
-    # Function to calculate break-even price for any price type
-    def calculate_break_even_for_price(price_type, initial_price):
-        out = sp.optimize.minimize(
-            fun=fun,
-            x0=initial_price,  # Initial guess for the given price
-            args=(price_type,),  # Pass price_type to fun (i.e., 'el', 'h2', 'q')
-            method="SLSQP",
-            tol=1e-10,
-        )
-        return out.x
-
-    # Calculate the break-even price for electricity
-    break_even_price_el = calculate_break_even_for_price("el", initial_price_el)
-
-    # Calculate the break-even price for hydrogen
-    break_even_price_h2 = calculate_break_even_for_price("h2", initial_price_h2)
-
-    # Calculate the break-even price for heat
-    break_even_price_q = calculate_break_even_for_price("q", initial_price_q)
-
-    return break_even_price_el, break_even_price_h2, break_even_price_q
-
-
-def calculate_CAPEX_phasing(
-    CAPEX,
-    phasing_yr,
-    phasing_CAPEX,
-    discount_rate,
-    inflation_index,
-):
-    """This function calulates the equivalent net present value CAPEX given a early paying "phasing" approach.
-
-    Parameters
-    ----------
-    CAPEX : CAPEX
-    phasing_yr : Yearly early paying of CAPEX curve. x-axis, time in years.
-    phasing_CAPEX : Yearly early paying of CAPEX curve. Shares will be normalized to sum the CAPEX.
-    discount_rate : Discount rate for present value calculation
-    inflation_index : Inflation index time series at the phasing_yr years. Accounts for inflation.
-
-    Returns
-    -------
-    CAPEX_eq : Present value equivalent CAPEX
-    """
-
-    phasing_CAPEX = inflation_index * CAPEX * phasing_CAPEX / np.sum(phasing_CAPEX)
-    CAPEX_eq = np.sum(
-        [
-            phasing_CAPEX[ii] / (1 + discount_rate) ** yr
-            for ii, yr in enumerate(phasing_yr)
-        ]
-    )
-
-    return CAPEX_eq
-
-
-def get_inflation_index(yr, inflation_yr, inflation, ref_yr_inflation=0):
-    """This function calulates the inflation index time series.
-
-    Parameters
-    ----------
-    yr : Years for eavaluation of the  inflation index
-    inflation_yr : Yearly inflation curve. x-axis, time in years. To be used in interpolation.
-    inflation : Yearly inflation curve.  To be used in interpolation.
-    ref_yr_inflation : Referenece year, at which the inflation index takes value of 1.
-
-    Returns
-    -------
-    inflation_index : inflation index time series at yr
-    """
-    infl = np.interp(yr, inflation_yr, inflation)
-
-    ind_ref = np.where(np.array(yr) == ref_yr_inflation)[0]
-    inflation_index = np.cumprod(1 + np.array(infl))
-    inflation_index = inflation_index / inflation_index[ind_ref]
-
-    return inflation_index
+# Auxiliar functions for financial modelling
+# -----------------------------------------------------------------------
+# 
+# Note: Core financial functions have been moved to hydesign.costmodels
+# Import them from there for consistency across all finance modules.

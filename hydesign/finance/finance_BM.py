@@ -3,7 +3,7 @@ import openmdao.api as om
 import pandas as pd
 import scipy as sp
 
-from hydesign.finance.finance import (
+from hydesign.costmodels import (
     calculate_CAPEX_phasing,
     calculate_NPV_IRR,
     calculate_WACC,

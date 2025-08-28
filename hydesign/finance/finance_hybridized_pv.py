@@ -14,7 +14,7 @@ import numpy_financial as npf
 import openmdao.api as om
 import pandas as pd
 
-from hydesign.finance.finance import calculate_revenues, get_inflation_index
+from hydesign.costmodels import calculate_revenues, get_inflation_index, calculate_NPV_IRR_hybridized
 
 # import yaml
 # import scipy as sp
@@ -356,7 +356,7 @@ class finance:
         DEVEX = 0
 
         # Calculate the
-        NPV, IRR = calculate_NPV_IRR(
+        NPV, IRR = calculate_NPV_IRR_hybridized(
             delta_life=delta_life,
             Net_revenue_t=np.insert(revenues, 0, 0),
             investment_cost=CAPEX,
@@ -492,114 +492,6 @@ class finance_comp(ComponentWrapper):
 # -----------------------------------------------------------------------
 # Auxiliar functions for financial modelling
 # -----------------------------------------------------------------------
-
-
-def calculate_NPV_IRR(
-    delta_life,
-    Net_revenue_t,
-    investment_cost,
-    maintenance_cost_per_year,
-    capex_vector,
-    capex_for_depreciation,
-    tax_rate,
-    discount_rate,
-    depreciation_yr,
-    depreciation,
-    depre_rate,
-    development_cost,
-    decommissioning_vec,
-    inflation_index,
-    plot=False,
-):
-    """A function to estimate the yearly cashflow using the net revenue time series, and the yearly OPEX costs.
-    It then calculates the NPV and IRR using the yearly cashlow, the CAPEX, the WACC after tax, and the tax rate.
-
-    Parameters
-    ----------
-    delta_life : Number of years between the start of operations of the first and second plants
-    Net_revenue_t : Net revenue time series
-    investment_cost : Capital costs
-    maintenance_cost_per_year : yearly operation and maintenance costs
-    tax_rate : tax rate
-    discount_rate : Discount rate
-    depreciation_yr : Depreciation curve (x-axis) time in years
-    depreciation : Depreciation curve at the given times
-    depre_rate : Straight line depreciation rate
-    development_cost : DEVEX
-    decommissioning_vec : vector containing the decommissioning costs over time
-    inflation_index : Yearly Inflation index time-sereis
-
-    Returns
-    -------
-    NPV : Net present value
-    IRR : Internal rate of return
-    """
-
-    # yr = np.arange(len(Net_revenue_t))  # extra year to start at 0 and end at end of lifetime.
-
-    # EBITDA: earnings before interest and taxes in nominal prices
-    EBITDA = (Net_revenue_t - maintenance_cost_per_year) * inflation_index
-
-    # EBIT taxable income
-    depreciation_on_each_year = depre_rate * capex_for_depreciation
-    EBIT = EBITDA - depreciation_on_each_year
-
-    # Taxes
-    Taxes = np.zeros(len(EBIT))
-
-    for ii in range(1, len(EBIT)):
-        if EBIT[ii] <= 0:
-            Taxes[ii] = 0
-        else:
-            Taxes[ii] = EBIT[ii] * tax_rate
-
-    Net_income = EBITDA - Taxes
-
-    Income_minus_capex = Net_income - capex_vector
-    Cashflow = Income_minus_capex - decommissioning_vec
-
-    # Bar plot for the cashflows
-    if plot:
-        opex = -maintenance_cost_per_year * inflation_index
-        revenue = Net_revenue_t * inflation_index
-        tax_vec = -Taxes
-        capex_vec_p = np.zeros(len(capex_vector))
-        capex_vec_p[0] = -capex_vector[0]
-        capex_vec_w = np.zeros(len(capex_vector))
-        capex_vec_w[delta_life] = -capex_vector[delta_life]
-
-        indices = np.arange(len(Cashflow))
-        plt.figure(figsize=(10, 6))
-        plt.bar(indices, revenue, color="green", label="Revenues", alpha=0.7)
-        plt.bar(indices, opex, color="orange", label="OPEX", alpha=0.7)
-        plt.bar(indices, tax_vec, bottom=opex, color="blue", label="Taxes", alpha=0.7)
-        plt.bar(indices, capex_vec_w, color="red", label="CAPEX wind", alpha=0.7)
-        plt.bar(
-            indices,
-            capex_vec_p,
-            bottom=tax_vec + opex,
-            color="magenta",
-            label="CAPEX PV and batteries",
-            alpha=0.7,
-        )
-        plt.bar(
-            indices,
-            -decommissioning_vec,
-            bottom=tax_vec + opex,
-            color="purple",
-            label="Decommissioning of WT",
-            alpha=0.7,
-        )
-        plt.title("Cashflows by Year")
-        plt.xlabel("Year")
-        plt.ylabel("Amount (MEur)")
-        plt.legend()
-        plt.grid(axis="y")
-        plt.show()
-
-    NPV = npf.npv(discount_rate, Cashflow)
-    if NPV > 0:
-        IRR = npf.irr(Cashflow)
-    else:
-        IRR = 0
-    return NPV, IRR
+# 
+# Note: Core financial functions have been moved to hydesign.costmodels
+# Import them from there for consistency across all finance modules.

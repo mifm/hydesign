@@ -5,7 +5,7 @@ import pandas as pd
 # import seaborn as sns
 import scipy as sp
 
-from hydesign.finance.finance import (
+from hydesign.costmodels import (
     calculate_CAPEX_phasing,
     calculate_NPV_IRR,
     calculate_WACC,
